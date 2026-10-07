@@ -256,7 +256,6 @@ public sealed class AppShell : IDisposable
         ApplyConfiguredHotkey(HotkeyRole.EmergencyStop, configured.EmergencyStop);
         ApplyConfiguredHotkey(HotkeyRole.SpeedUp, configured.SpeedUp);
         ApplyConfiguredHotkey(HotkeyRole.SpeedDown, configured.SpeedDown);
-        ApplyConfiguredHotkey(HotkeyRole.StepNext, configured.StepNext);
     }
 
     private void ApplyConfiguredHotkey(HotkeyRole role, string configuredText)
@@ -331,11 +330,6 @@ public sealed class AppShell : IDisposable
 
             case HotkeyRole.SpeedUp:
                 _main.AdjustInterval(+10);
-                break;
-
-            case HotkeyRole.StepNext:
-                // 逐行步进：继续下一行（只在"等待下一步"或暂停时有意义）
-                _controller.StepNext();
                 break;
 
             case HotkeyRole.SpeedDown:

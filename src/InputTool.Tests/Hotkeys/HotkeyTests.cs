@@ -82,8 +82,7 @@ public sealed class HotkeyGestureTests
     public void 默认热键_应与设计文档一致()
     {
         HotkeyGesture.DefaultStartPause.Key.Should().Be(VirtualKey.F9);
-        HotkeyGesture.DefaultEmergencyStop.Key.Should().Be(VirtualKey.F11);
-        HotkeyGesture.DefaultStepNext.Key.Should().Be(VirtualKey.F10);
+        HotkeyGesture.DefaultEmergencyStop.Key.Should().Be(VirtualKey.F10);
         HotkeyGesture.DefaultSpeedUp.ToString().Should().Be("Ctrl+Alt+Up");
         HotkeyGesture.DefaultSpeedDown.ToString().Should().Be("Ctrl+Alt+Down");
     }

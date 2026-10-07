@@ -31,9 +31,6 @@ public enum HotkeyRole
     /// <summary>速度减慢（默认 Ctrl+Alt+↓，FR-028）。</summary>
     SpeedDown,
 
-    /// <summary>逐行步进：按一次输入下一行（默认 F10）。仅在启用「逐行步进」时有意义。</summary>
-    StepNext,
-
     /// <summary>P2 预留。</summary>
     Custom1,
 

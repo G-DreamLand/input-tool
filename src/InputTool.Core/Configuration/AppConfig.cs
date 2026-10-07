@@ -94,10 +94,9 @@ public sealed record CountdownConfig(
 /// <summary>热键配置（文本形式，便于用户手工编辑）。</summary>
 public sealed record HotkeysConfig(
     string StartPause = "F9",
-    string EmergencyStop = "Ctrl+Alt+F11",
+    string EmergencyStop = "F10",
     string SpeedUp = "Ctrl+Alt+Up",
-    string SpeedDown = "Ctrl+Alt+Down",
-    string StepNext = "F10");
+    string SpeedDown = "Ctrl+Alt+Down");
 
 /// <summary>界面配置。</summary>
 public sealed record UiConfig(

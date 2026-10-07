@@ -107,10 +107,6 @@ public sealed class Win32HotkeyService : IHotkeyService
         {
             RegisterWithFallback(HotkeyRole.StartPause, HotkeyGesture.DefaultStartPause, StartPauseFallback),
             RegisterWithFallback(HotkeyRole.EmergencyStop, HotkeyGesture.DefaultEmergencyStop, EmergencyStopFallback),
-            RegisterWithFallback(
-                HotkeyRole.StepNext,
-                HotkeyGesture.DefaultStepNext,
-                "Ctrl+Alt+F10"),
             Register(HotkeyRole.SpeedUp, HotkeyGesture.DefaultSpeedUp),
             Register(HotkeyRole.SpeedDown, HotkeyGesture.DefaultSpeedDown),
         };
@@ -214,7 +210,6 @@ public sealed class Win32HotkeyService : IHotkeyService
         HotkeyRole.EmergencyStop => "紧急停止",
         HotkeyRole.SpeedUp => "速度加快",
         HotkeyRole.SpeedDown => "速度减慢",
-        HotkeyRole.StepNext => "逐行步进",
         HotkeyRole.Custom1 => "自定义 1",
         _ => "自定义 2",
     };
