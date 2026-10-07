@@ -24,6 +24,7 @@ public sealed class AppShell : IDisposable
     private readonly MainViewModel _main;
     private readonly MainWindow _mainWindow;
     private readonly OverlayWindow _overlay;
+    private readonly IStepLinePresenter _stepLinePresenter;
     private readonly TrayService _tray;
     private readonly InputSessionController _controller;
     private readonly Win32KeyboardEmitter _emitter;
@@ -61,11 +62,17 @@ public sealed class AppShell : IDisposable
         _overlay = new OverlayWindow();
         _emitter = new Win32KeyboardEmitter();
 
+        // 步进等待时把「下一行」显示到浮层上（与倒计时共用同一个浮层窗口，靠模式隔离）
+        _stepLinePresenter = new OverlayStepLinePresenter(_overlay);
+
         _controller = new InputSessionController(
             emitter: _emitter,
             probe: new InjectabilityProbe(),
             countdown: new OverlayCountdownPresenter(_overlay),
             logger: logger);
+
+        // 控制器只管"下一行是什么"，怎么画由呈现器决定
+        _controller.StepLineChanged += OnStepLineChanged;
 
         _main = new MainViewModel(new DocumentPipeline(), _controller)
         {
@@ -335,6 +342,26 @@ public sealed class AppShell : IDisposable
             case HotkeyRole.SpeedDown:
                 _main.AdjustInterval(-10);
                 break;
+        }
+    }
+
+    // ── 步进时显示下一行（FR 新增）──────────────────────────────────────
+
+    /// <summary>
+    /// 步进等待状态变化：把「下一行」显示到浮层上，离开等待时收起。
+    /// </summary>
+    /// <remarks>
+    /// 控制器保证该事件回到界面线程，因此这里可以直接碰 WPF 元素。
+    /// </remarks>
+    private void OnStepLineChanged(object? sender, StepLineChangedEventArgs e)
+    {
+        if (e.IsWaiting)
+        {
+            _stepLinePresenter.Show(e.LineNumber, e.DisplayText);
+        }
+        else
+        {
+            _stepLinePresenter.Hide();
         }
     }
 
