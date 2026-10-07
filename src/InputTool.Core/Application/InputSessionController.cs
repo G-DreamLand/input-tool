@@ -98,6 +98,13 @@ public sealed class InputSessionController : IInputSessionController
     /// <summary>是否正停在某一行开头等待步进热键。</summary>
     private bool _waitingForStep;
 
+    /// <summary>
+    /// 源文本按行切分的缓存。会话期间文档视为不可变快照，切分一次即可——
+    /// 否则每跨一行都要重新切分整个文件，几十万行的文本会退化成 O(n²)。
+    /// 换文档（<c>StartAsync</c>）与 <c>Reset</c> 时失效。
+    /// </summary>
+    private IReadOnlyList<string>? _sourceLines;
+
     /// <inheritdoc />
     public event EventHandler<StateChangedEventArgs>? StateChanged;
 
@@ -109,6 +116,9 @@ public sealed class InputSessionController : IInputSessionController
 
     /// <inheritdoc />
     public event EventHandler<SessionStatistics>? Finished;
+
+    /// <inheritdoc />
+    public event EventHandler<StepLineChangedEventArgs>? StepLineChanged;
 
     /// <inheritdoc />
     public void Start(LoadedDocument document, int countdownSeconds, Func<SpeedProfile> profileProvider)
@@ -153,6 +163,9 @@ public sealed class InputSessionController : IInputSessionController
         _waitingForStep = false;
         _scheduler.Resume();
         SetState(InputSessionState.Typing, "继续输入");
+
+        // 离开步进等待：收起「下一行」浮层（步进继续走的就是这条路）
+        RaiseOnUi(ClearStepLine);
     }
 
     /// <inheritdoc />
@@ -183,6 +196,9 @@ public sealed class InputSessionController : IInputSessionController
             default:
                 _logger?.Info("收到停止请求", "Session");
                 _scheduler.Stop();
+
+                // 急停要立刻收起「下一行」浮层，不等调度线程收尾
+                RaiseOnUi(ClearStepLine);
                 return;
         }
     }
@@ -207,6 +223,8 @@ public sealed class InputSessionController : IInputSessionController
             return;
         }
 
+        _sourceLines = null;
+        RaiseOnUi(ClearStepLine);
         SetState(InputSessionState.Idle, "已就绪");
     }
 
@@ -242,6 +260,9 @@ public sealed class InputSessionController : IInputSessionController
 
             _document = document;
             _profileProvider = profileProvider;
+
+            // 换了文档，缓存的源文本行必须作废
+            _sourceLines = null;
 
             var seconds = Math.Max(0, countdownSeconds);
 
@@ -323,6 +344,9 @@ public sealed class InputSessionController : IInputSessionController
     {
         // 会话结束（无论什么原因）：先停掉焦点监视，别让它继续跑
         StopFocusGuard();
+
+        // 会话结束一定不在"等步进"状态里，浮层必须收掉
+        RaiseOnUi(ClearStepLine);
 
         var averageInterval = e.Completed > 0 ? e.Elapsed.TotalMilliseconds / e.Completed : 0;
 
@@ -438,7 +462,29 @@ public sealed class InputSessionController : IInputSessionController
         {
             _waitingForStep = true;
             SetState(InputSessionState.Paused, "已完成本行，等待下一步（步进热键）");
+
+            // 「步进时显示下一行」：把行号翻成源文本行，交给呈现层显示
+            StepLineChanged?.Invoke(this, BuildStepLine(e.LineIndex));
         });
+
+    /// <summary>
+    /// 把「下一行」的行号解析成可直接显示的源文本行（FR 新增：步进时显示下一行）。
+    /// </summary>
+    private StepLineChangedEventArgs BuildStepLine(int lineIndex)
+    {
+        // 会话期间文档不变，切分一次就够（见 _sourceLines 的说明）
+        _sourceLines ??= SourceLineText.SplitLines(_document?.RawText);
+
+        return new StepLineChangedEventArgs(
+            IsWaiting: true,
+            LineIndex: lineIndex,
+            LineNumber: lineIndex + 1,
+            DisplayText: SourceLineText.Describe(_sourceLines, lineIndex));
+    }
+
+    /// <summary>离开步进等待：通知呈现层收起「下一行」浮层。</summary>
+    private void ClearStepLine()
+        => StepLineChanged?.Invoke(this, StepLineChangedEventArgs.Hidden);
 
     /// <summary>失去焦点：按 FR-020.3 的策略处理。</summary>
     private void HandleFocusLost()

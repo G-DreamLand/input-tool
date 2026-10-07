@@ -57,6 +57,16 @@ public interface IInputSessionController
     event EventHandler<SessionStatistics>? Finished;
 
     /// <summary>
+    /// 步进等待中的「下一行」发生变化（在界面线程上回调）。
+    /// </summary>
+    /// <remarks>
+    /// FR 新增「步进时显示下一行」：调度器停在行首时，把即将输入的那一行的<b>源文本</b>
+    /// 交给界面预览。硬约束：浮层绝不抢焦点、显示源文本行、空行显示「（空行）」、限宽限高。
+    /// <see cref="StepLineChangedEventArgs.IsWaiting"/> 为 false 表示离开等待状态，界面应收起浮层。
+    /// </remarks>
+    event EventHandler<StepLineChangedEventArgs>? StepLineChanged;
+
+    /// <summary>
     /// 开始一次输入：前置校验 → 倒计时 → 注入（T1~T5）。
     /// </summary>
     /// <param name="document">已解析的文档。</param>
