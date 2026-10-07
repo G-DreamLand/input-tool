@@ -27,6 +27,21 @@ public partial class OverlayWindow : Window
     private int _totalSeconds;
     private bool _isCountingDown;
 
+    /// <summary>
+    /// 浮层当前显示的是哪种内容。浮层是倒计时 / 进度 / 「下一行」三种模式**共用**的一个窗口，
+    /// 因此各自"收起"时必须只关自己那一种，不能顺手把别人的面板关掉。
+    /// </summary>
+    private OverlayMode _mode = OverlayMode.None;
+
+    /// <summary>浮层显示模式。</summary>
+    private enum OverlayMode
+    {
+        None,
+        Countdown,
+        Progress,
+        StepLine,
+    }
+
     /// <summary>构造浮层。</summary>
     public OverlayWindow()
     {
@@ -56,8 +71,10 @@ public partial class OverlayWindow : Window
     /// <param name="position">浮层位置。</param>
     public void StartCountdown(int seconds, OverlayPosition position)
     {
+        _mode = OverlayMode.Countdown;
         CountdownPanel.Visibility = Visibility.Visible;
         ProgressPanel.Visibility = Visibility.Collapsed;
+        StepLinePanel.Visibility = Visibility.Collapsed;
 
         _totalSeconds = Math.Max(0, seconds);
         RemainingSeconds = _totalSeconds;
@@ -78,11 +95,53 @@ public partial class OverlayWindow : Window
         _timer.Stop();
         _stopwatch.Reset();
 
+        _mode = OverlayMode.Progress;
         CountdownPanel.Visibility = Visibility.Collapsed;
         ProgressPanel.Visibility = Visibility.Visible;
+        StepLinePanel.Visibility = Visibility.Collapsed;
 
         UpdateProgress(caption, percent, detail);
         ShowAt(position);
+    }
+
+    /// <summary>
+    /// 显示「下一行」预览并浮出（FR 新增：步进时显示下一行）。
+    /// </summary>
+    /// <param name="lineNumber">1 基行号（仅用于标题）。</param>
+    /// <param name="displayText">已格式化好的行文本（空行是「（空行）」，见 <c>SourceLineText</c>）。</param>
+    /// <param name="position">浮层位置。</param>
+    public void ShowStepLine(int lineNumber, string displayText, OverlayPosition position)
+    {
+        _mode = OverlayMode.StepLine;
+        _isCountingDown = false;
+        _timer.Stop();
+        _stopwatch.Reset();
+
+        CountdownPanel.Visibility = Visibility.Collapsed;
+        ProgressPanel.Visibility = Visibility.Collapsed;
+        StepLinePanel.Visibility = Visibility.Visible;
+
+        StepLineCaption.Text = $"下一行（第 {lineNumber} 行）";
+        StepLineText.Text = displayText;
+
+        ShowAt(position);
+    }
+
+    /// <summary>
+    /// 收起「下一行」预览。
+    /// </summary>
+    /// <remarks>
+    /// 只在自己的模式下动手：浮层是共用的，无条件 <see cref="HideOverlay"/> 会把正在显示的
+    /// 倒计时 / 进度一起关掉（步进等待与倒计时虽不会同时发生，但这个不变量不该靠"不会同时发生"来维持）。
+    /// </remarks>
+    public void HideStepLine()
+    {
+        if (_mode != OverlayMode.StepLine)
+        {
+            return;
+        }
+
+        HideOverlay();
     }
 
     /// <summary>刷新进度显示。</summary>
@@ -96,6 +155,7 @@ public partial class OverlayWindow : Window
     /// <summary>隐藏浮层并复位计时状态。</summary>
     public void HideOverlay()
     {
+        _mode = OverlayMode.None;
         _isCountingDown = false;
         _timer.Stop();
         _stopwatch.Reset();

@@ -15,11 +15,12 @@
         UseLayoutRounding="True">
 
     <!--
-        倒计时 / 进度浮层。见《软件开发设计文档》§6.3。
+        倒计时 / 进度 / 「下一行」预览浮层。见《软件开发设计文档》§6.3。
         硬约束：
         · 无边框、半透明、置顶；
         · 代码里在 SourceInitialized 时加 WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW，绝不抢焦点；
-        · 面板配色固定为深色半透明（它是浮在别人窗口上的遮罩，不随应用主题变化）。
+        · 面板配色固定为深色半透明（它是浮在别人窗口上的遮罩，不随应用主题变化）；
+        · 「下一行」面板必须**限宽限高**：超宽折行、超高内部滚动，绝不让浮层长满屏幕。
     -->
 
     <Border Background="#E6121316" CornerRadius="10" Padding="22,16"
@@ -49,6 +50,30 @@
                 <Button Content="停止" Width="86" Height="28" Margin="0,14,0,0"
                         HorizontalAlignment="Center" Style="{StaticResource PrimaryButtonStyle}"
                         Click="OnCancelClick" />
+            </StackPanel>
+
+            <!--
+                逐行步进：显示「下一行」的源文本（FR 新增）。
+                限宽：MaxWidth 让长行折行，而不是把浮层撑成一条横向长带；
+                限高：滚动区 MaxHeight，超长行内部滚动查看，既不静默截断也不占满屏幕。
+            -->
+            <StackPanel x:Name="StepLinePanel" Visibility="Collapsed" MaxWidth="420">
+                <TextBlock x:Name="StepLineCaption" Text="下一行"
+                           Foreground="#8CFFFFFF" FontSize="12" />
+                <Border Background="#1AFFFFFF" CornerRadius="6" Padding="10,8" Margin="0,6,0,0">
+                    <ScrollViewer MaxHeight="200"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Focusable="False">
+                        <!-- 等宽字体便于看清缩进；中文回退到微软雅黑 -->
+                        <TextBlock x:Name="StepLineText" Text="（空行）"
+                                   Foreground="White" FontSize="14"
+                                   FontFamily="Consolas, Microsoft YaHei UI"
+                                   TextWrapping="Wrap" />
+                    </ScrollViewer>
+                </Border>
+                <TextBlock Text="按 F9 继续下一行（F10 急停）" Foreground="#8CFFFFFF" FontSize="12"
+                           Margin="0,10,0,0" />
             </StackPanel>
 
         </StackPanel>
