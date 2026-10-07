@@ -213,6 +213,10 @@ public sealed class AppShell : IDisposable
         _hotkeys.Pressed += OnHotkeyPressed;
         _hotkeys.RegisterDefaults();
 
+        // 配置里的热键优先于内置默认值（原先只调 RegisterDefaults，
+        // 导致设置里改的热键永远不生效——既有缺陷）
+        ApplyConfiguredHotkeys();
+
         // 回显实际生效的热键（可能因冲突回退到备用组合，SRS 附录 B）
         _main.StartPauseHotkey = DisplayGesture(HotkeyRole.StartPause, "F9");
         _main.EmergencyStopHotkey = DisplayGesture(HotkeyRole.EmergencyStop, "F10");
@@ -227,6 +231,66 @@ public sealed class AppShell : IDisposable
                 "紧急停止热键不可用",
                 "紧急停止热键注册失败（可能被其他程序占用）。在成功注册之前不允许开始输入，这是安全要求。",
                 "请在设置中为「紧急停止」更换一个热键后重试（FR-014.5）。");
+        }
+    }
+
+    /// <summary>
+    /// 用配置里的热键覆盖内置默认值。
+    /// </summary>
+    /// <remarks>
+    /// 关键安全约束：**任何一步失败都必须把原来的绑定恢复回去**。
+    /// 尤其是急停键——它一旦被注销而新键又注册不上，用户就失去了随时停止的能力，
+    /// 而按 FR-014.5 程序还会拒绝开始输入，等于把人卡死。
+    /// 所以这里的策略是"先注册成功才生效，失败就回滚"。
+    /// </remarks>
+    private void ApplyConfiguredHotkeys()
+    {
+        if (_hotkeys is null)
+        {
+            return;
+        }
+
+        var configured = _config.Current.Hotkeys;
+
+        ApplyConfiguredHotkey(HotkeyRole.StartPause, configured.StartPause);
+        ApplyConfiguredHotkey(HotkeyRole.EmergencyStop, configured.EmergencyStop);
+        ApplyConfiguredHotkey(HotkeyRole.SpeedUp, configured.SpeedUp);
+        ApplyConfiguredHotkey(HotkeyRole.SpeedDown, configured.SpeedDown);
+        ApplyConfiguredHotkey(HotkeyRole.StepNext, configured.StepNext);
+    }
+
+    private void ApplyConfiguredHotkey(HotkeyRole role, string configuredText)
+    {
+        if (_hotkeys is null
+            || !_hotkeys.Bindings.TryGetValue(role, out var current)
+            || !HotkeyGesture.TryParse(configuredText, out var desired)
+            || desired == current.Gesture)
+        {
+            // 没配、解析不了、或与当前一致：保持现状（默认值可用，绝不动它）
+            return;
+        }
+
+        var previous = current.Gesture;
+        var result = _hotkeys.Register(role, desired);
+
+        if (result.Status == HotkeyRegistrationStatus.Success)
+        {
+            _logger.Info($"热键已按配置生效：{role} → {desired}", "Hotkey");
+            return;
+        }
+
+        // 回滚：宁可回到能用的默认键，也不留一个没有热键的角色
+        _hotkeys.Register(role, previous);
+        _logger.Warn(
+            $"配置的热键 {role}={configuredText} 注册失败（{result.Message}），已保留 {previous}",
+            "Hotkey");
+
+        if (role == HotkeyRole.EmergencyStop)
+        {
+            _main.ShowError(
+                "紧急停止热键未能按配置生效",
+                $"你配置的「{configuredText}」注册失败，当前仍使用「{previous}」。",
+                "请在设置里换一个组合，或点「恢复默认热键」。");
         }
     }
 
