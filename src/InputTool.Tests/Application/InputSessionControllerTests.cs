@@ -24,7 +24,8 @@ public sealed class InputSessionControllerTests
         FakeInjectabilityProbe Probe,
         ControllableCountdownPresenter Countdown,
         FakeTargetWindowGateway Targets,
-        FakeFocusMonitor Focus);
+        FakeFocusMonitor Focus,
+        InputScheduler Scheduler);
 
     private static Harness Build()
     {
@@ -38,7 +39,7 @@ public sealed class InputSessionControllerTests
         var scheduler = new InputScheduler(emitter, clock, waiter, new IntervalCalculator(new FixedRandomSource(0.5)));
         var controller = new InputSessionController(scheduler, emitter, probe, countdown, targets, focus);
 
-        return new Harness(controller, clock, waiter, emitter, probe, countdown, targets, focus);
+        return new Harness(controller, clock, waiter, emitter, probe, countdown, targets, focus, scheduler);
     }
 
     private static LoadedDocument Document(string text)
@@ -539,6 +540,43 @@ public sealed class InputSessionControllerTests
         // 会话结束后再报失焦也不该影响状态
         h.Focus.RaiseFocusLost();
         h.Controller.State.Should().Be(InputSessionState.Finished);
+    }
+
+    [Fact]
+    public async Task 步进继续之后_焦点守护仍应生效()
+    {
+        // 回归用例：逐行步进改用 F9 继续（走 Resume）之后，
+        // 若 Resume 没清掉"等待步进"标记，焦点守护会**永久失效**——字会继续打到别的窗口。
+        var h = Build();
+        h.Controller.FocusGuardEnabled = true;
+        h.Controller.StepMode = true;
+
+        var firstStepHandled = false;
+
+        h.Scheduler.StepWaiting += (_, _) =>
+        {
+            if (!firstStepHandled)
+            {
+                firstStepHandled = true;
+                h.Controller.Resume();       // 模拟用户按 F9 继续下一行
+                h.Focus.RaiseFocusLost();    // 继续之后立刻失焦
+                return;
+            }
+
+            h.Controller.Resume();           // 后续步进直接放行，避免测试挂住
+        };
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
+
+        SpinWait.SpinUntil(() => h.Controller.State == InputSessionState.Paused, TimeSpan.FromSeconds(5))
+            .Should().BeTrue("步进继续之后焦点守护必须仍然能暂停（标志残留会让它彻底失效）");
+
+        h.Focus.RaiseFocusRegained();
+        var result = await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(SessionOutcome.Completed);
+        h.Emitter.Emitted.Should().NotBeEmpty();
     }
 
     // ── 统计与提示 ──────────────────────────────────────────────────────
