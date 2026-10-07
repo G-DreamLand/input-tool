@@ -41,6 +41,12 @@ public interface IInputSessionController
     /// <summary>失去焦点时的动作（FR-020.3）：自动暂停 / 继续输入 / 自动停止。</summary>
     Configuration.FocusGuardAction FocusGuardAction { get; set; }
 
+    /// <summary>逐行步进：每到一个新行的开头先停住，按步进热键才输入下一行。</summary>
+    bool StepMode { get; set; }
+
+    /// <summary>步进：继续输入下一行（只在等待步进/暂停时有意义）。</summary>
+    void StepNext();
+
     /// <summary>状态迁移（在界面线程上回调）。</summary>
     event EventHandler<StateChangedEventArgs>? StateChanged;
 

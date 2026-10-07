@@ -82,7 +82,8 @@ public sealed class HotkeyGestureTests
     public void 默认热键_应与设计文档一致()
     {
         HotkeyGesture.DefaultStartPause.Key.Should().Be(VirtualKey.F9);
-        HotkeyGesture.DefaultEmergencyStop.Key.Should().Be(VirtualKey.F10);
+        HotkeyGesture.DefaultEmergencyStop.Key.Should().Be(VirtualKey.F11);
+        HotkeyGesture.DefaultStepNext.Key.Should().Be(VirtualKey.F10);
         HotkeyGesture.DefaultSpeedUp.ToString().Should().Be("Ctrl+Alt+Up");
         HotkeyGesture.DefaultSpeedDown.ToString().Should().Be("Ctrl+Alt+Down");
     }
@@ -158,9 +159,8 @@ public sealed class HotkeyValidatorTests
     [Fact]
     public void Validate_与其它角色重复_应拒绝并指出占用者()
     {
-        HotkeyGesture.TryParse("F10", out var gesture).Should().BeTrue();
-
-        var result = HotkeyValidator.Validate(gesture, HotkeyRole.StartPause, Defaults());
+        // 直接用"急停的默认组合"，这样默认值改了测试也不会失效
+        var result = HotkeyValidator.Validate(HotkeyGesture.DefaultEmergencyStop, HotkeyRole.StartPause, Defaults());
 
         result.IsValid.Should().BeFalse();
         result.Reason.Should().Contain("紧急停止");

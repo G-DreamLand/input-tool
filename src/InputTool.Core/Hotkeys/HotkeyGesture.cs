@@ -14,7 +14,17 @@ public sealed record HotkeyGesture(HotkeyModifiers Modifiers, VirtualKey Key)
     public static HotkeyGesture DefaultStartPause { get; } = new(HotkeyModifiers.NoRepeat, VirtualKey.F9);
 
     /// <summary>默认【紧急停止】热键：F10。</summary>
-    public static HotkeyGesture DefaultEmergencyStop { get; } = new(HotkeyModifiers.NoRepeat, VirtualKey.F10);
+    public static HotkeyGesture DefaultEmergencyStop { get; } = new(HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.NoRepeat, VirtualKey.F11);
+
+    /// <summary>
+    /// 逐行步进的默认热键（F10）。
+    /// </summary>
+    /// <remarks>
+    /// 这些是 <c>RegisterHotKey</c> 注册的**全局**热键：注册成功后按键被系统截走，
+    /// 终端收不到，因此不会触发 cmd 的 F7/F8/F9 历史功能或 Windows Terminal 的 F11 全屏。
+    /// 但注册失败时按键会穿透，所以步进另有 <c>Ctrl+Alt+F10</c> 作为自动回退。
+    /// </remarks>
+    public static HotkeyGesture DefaultStepNext { get; } = new(HotkeyModifiers.NoRepeat, VirtualKey.F10);
 
     /// <summary>默认【速度加快】热键：Ctrl+Alt+↑。</summary>
     public static HotkeyGesture DefaultSpeedUp { get; } = new(HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.NoRepeat, VirtualKey.Up);

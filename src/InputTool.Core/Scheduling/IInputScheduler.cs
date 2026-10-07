@@ -16,6 +16,20 @@ public interface IInputScheduler
     SchedulerState State { get; }
 
     /// <summary>
+    /// 逐行步进：每跨到**新的一行**先暂停，等 <see cref="Resume"/> 再继续。
+    /// </summary>
+    /// <remarks>
+    /// 行边界取自 <see cref="InputUnit.LineIndex"/>，因此与"换行策略"无关——
+    /// 即使策略是「不发送回车」，步进依然按源文本的行工作。
+    /// 空行也是一行，同样会停（脚本语义）。
+    /// 默认关闭，关闭时行为与之前完全一致。
+    /// </remarks>
+    bool StepMode { get; set; }
+
+    /// <summary>因步进而停在某一行开头（在调度线程上触发；界面据此提示"等待下一步"）。</summary>
+    event EventHandler? StepWaiting;
+
+    /// <summary>
     /// 开始一次输入。
     /// </summary>
     /// <param name="units">待注入的单元序列（会话期间视为不可变快照）。</param>

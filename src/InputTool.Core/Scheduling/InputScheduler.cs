@@ -32,6 +32,22 @@ public sealed class InputScheduler : IInputScheduler
     // 初始为"已放行"：Start 前没有暂停
     private readonly ManualResetEventSlim _pauseGate = new(initialState: true);
 
+    /// <summary>逐行步进开关（跨行即停，等 Resume 再走）。</summary>
+    private volatile bool _stepMode;
+
+    /// <summary>上一个已处理单元的行号；-1 表示尚未处理任何单元（第一行不触发步进）。</summary>
+    private int _lastLineIndex = -1;
+
+    /// <inheritdoc />
+    public bool StepMode
+    {
+        get => _stepMode;
+        set => _stepMode = value;
+    }
+
+    /// <inheritdoc />
+    public event EventHandler? StepWaiting;
+
     private volatile bool _stopRequested;
     private volatile SchedulerState _state = SchedulerState.Idle;
     private Thread? _worker;
@@ -169,6 +185,18 @@ public sealed class InputScheduler : IInputScheduler
                     outcome = SessionOutcome.Stopped;
                     break;
                 }
+
+                // 逐行步进（新增）：一旦要跨到新的一行，就先停住等步进热键。
+                // 放在下面那个暂停门检查之前，就能把"等待"、"急停"、
+                // "恢复后重建时间基准"全部复用现成逻辑。
+                // 空行同样是一行，因此连续空行会要求连续按键（脚本语义）。
+                if (_stepMode && _lastLineIndex >= 0 && units[index].LineIndex != _lastLineIndex)
+                {
+                    Pause();
+                    StepWaiting?.Invoke(this, EventArgs.Empty);
+                }
+
+                _lastLineIndex = units[index].LineIndex;
 
                 // 暂停门：恢复时重建时间基准（FR-015）
                 if (!_pauseGate.IsSet)

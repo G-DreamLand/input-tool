@@ -65,6 +65,7 @@ public sealed class InputSessionController : IInputSessionController
         _logger = logger;
 
         _scheduler.Finished += OnSchedulerFinished;
+        _scheduler.StepWaiting += OnStepWaiting;
     }
 
     /// <inheritdoc />
@@ -90,6 +91,12 @@ public sealed class InputSessionController : IInputSessionController
 
     /// <inheritdoc />
     public FocusGuardAction FocusGuardAction { get; set; } = FocusGuardAction.Pause;
+
+    /// <inheritdoc />
+    public bool StepMode { get; set; }
+
+    /// <summary>是否正停在某一行开头等待步进热键。</summary>
+    private bool _waitingForStep;
 
     /// <inheritdoc />
     public event EventHandler<StateChangedEventArgs>? StateChanged;
@@ -298,6 +305,7 @@ public sealed class InputSessionController : IInputSessionController
                     ? $"正在向「{title}」输入…"
                     : "正在向目标窗口输入…");
 
+            _scheduler.StepMode = StepMode;
             _scheduler.Start(document.Units, profileProvider, new ProgressRelay(this));
         }
         catch (Exception ex)
@@ -421,10 +429,41 @@ public sealed class InputSessionController : IInputSessionController
 
     private void OnFocusRegained(object? sender, EventArgs e) => RaiseOnUi(HandleFocusRegained);
 
+    /// <inheritdoc />
+    public void StepNext()
+    {
+        // 只在等待步进（或用户暂停）时有效；运行中/空闲时按了不产生副作用，也不排队
+        if (_state != InputSessionState.Paused)
+        {
+            return;
+        }
+
+        _waitingForStep = false;
+        _pausedByFocusGuard = false;
+        _scheduler.Resume();
+        SetState(InputSessionState.Typing, "步进：继续下一行");
+    }
+
+    /// <summary>调度器停在某一行开头（FR 新增：逐行步进）。</summary>
+    private void OnStepWaiting(object? sender, EventArgs e)
+        => RaiseOnUi(() =>
+        {
+            _waitingForStep = true;
+            SetState(InputSessionState.Paused, "已完成本行，等待下一步（步进热键）");
+        });
+
     /// <summary>失去焦点：按 FR-020.3 的策略处理。</summary>
     private void HandleFocusLost()
     {
         if (_state is not (InputSessionState.Typing or InputSessionState.Paused))
+        {
+            return;
+        }
+
+        // 停在行首等步进时并不是"焦点跑掉了"，不该弹失焦提示。
+        // 这也是与焦点守护的**关键互锁**：因为 _pausedByFocusGuard 此时为 false，
+        // 焦点回来时 HandleFocusRegained 的自动继续不会触发 —— 不会替你跳步。
+        if (_waitingForStep)
         {
             return;
         }

@@ -80,6 +80,7 @@ public sealed record BehaviorConfig(
     bool SkipCommentLines = false,
     bool ClearTargetFirst = false,
     bool FocusGuard = false,
+    bool StepMode = false,
     FocusGuardAction FocusGuardAction = FocusGuardAction.Pause,
     KeyboardMode KeyboardMode = KeyboardMode.Unicode,
     int PauseAutoStopMinutes = 0,
@@ -93,9 +94,10 @@ public sealed record CountdownConfig(
 /// <summary>热键配置（文本形式，便于用户手工编辑）。</summary>
 public sealed record HotkeysConfig(
     string StartPause = "F9",
-    string EmergencyStop = "F10",
+    string EmergencyStop = "Ctrl+Alt+F11",
     string SpeedUp = "Ctrl+Alt+Up",
-    string SpeedDown = "Ctrl+Alt+Down");
+    string SpeedDown = "Ctrl+Alt+Down",
+    string StepNext = "F10");
 
 /// <summary>界面配置。</summary>
 public sealed record UiConfig(

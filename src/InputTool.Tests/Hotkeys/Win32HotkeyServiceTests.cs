@@ -33,9 +33,9 @@ public sealed class Win32HotkeyServiceTests
         var results = service.RegisterDefaults();
 
         results.Should().OnlyContain(r => r.Status == HotkeyRegistrationStatus.Success);
-        service.Bindings.Should().HaveCount(4);
+        service.Bindings.Should().HaveCount(5);
         service.EmergencyStopAvailable.Should().BeTrue();
-        native.Registrations.Should().HaveCount(4);
+        native.Registrations.Should().HaveCount(5);
     }
 
     [Fact]
@@ -67,10 +67,10 @@ public sealed class Win32HotkeyServiceTests
     {
         var (service, native) = Build();
 
-        // F10 与备用组合 Ctrl+Alt+Q 都被占用
+        // 默认急停组合 Ctrl+Alt+F11 与备用组合 Ctrl+Alt+Q 都被占用
         native.ResultFactory = (_, virtualKey) => virtualKey switch
         {
-            (uint)VirtualKey.F10 => ErrorHotkeyAlreadyRegistered,
+            (uint)VirtualKey.F11 => ErrorHotkeyAlreadyRegistered,
             (uint)VirtualKey.Q => ErrorHotkeyAlreadyRegistered,
             _ => 0,
         };
