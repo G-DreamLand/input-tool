@@ -269,6 +269,11 @@ public sealed class AppShell : IDisposable
                 _main.AdjustInterval(+10);
                 break;
 
+            case HotkeyRole.StepNext:
+                // 逐行步进：继续下一行（只在"等待下一步"或暂停时有意义）
+                _controller.StepNext();
+                break;
+
             case HotkeyRole.SpeedDown:
                 _main.AdjustInterval(-10);
                 break;

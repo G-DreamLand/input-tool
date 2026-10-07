@@ -351,6 +351,24 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     /// <summary>目标窗口焦点守护（默认关闭，Q-04 决议）。</summary>
+    private bool _stepMode;
+
+    /// <summary>
+    /// 逐行步进：每行打完就停住，按步进热键（默认 F10）才输入下一行。
+    /// 空行也算一步（脚本语义）。
+    /// </summary>
+    public bool StepMode
+    {
+        get => _stepMode;
+        set
+        {
+            if (SetProperty(ref _stepMode, value))
+            {
+                ApplyFocusGuard();
+            }
+        }
+    }
+
     /// <summary>是否启用目标窗口焦点守护（FR-020）。</summary>
     public bool FocusGuard
     {
@@ -387,6 +405,7 @@ public sealed class MainViewModel : ViewModelBase
 
         _controller.FocusGuardEnabled = _focusGuard;
         _controller.FocusGuardAction = (FocusGuardAction)_focusGuardActionIndex;
+        _controller.StepMode = _stepMode;
     }
 
     /// <summary>完成提示音。</summary>

@@ -60,6 +60,7 @@ public sealed class AppSettingsBinder : IDisposable
             _viewModel.IgnoreEmptyLines = config.Behavior.IgnoreEmptyLines;
             _viewModel.SkipCommentLines = config.Behavior.SkipCommentLines;
             _viewModel.FocusGuard = config.Behavior.FocusGuard;
+            _viewModel.StepMode = config.Behavior.StepMode;
             _viewModel.FocusGuardActionIndex = (int)config.Behavior.FocusGuardAction;
 
             _viewModel.CountdownSeconds = config.Countdown.Seconds;
@@ -104,6 +105,7 @@ public sealed class AppSettingsBinder : IDisposable
                 IgnoreEmptyLines = _viewModel.IgnoreEmptyLines,
                 SkipCommentLines = _viewModel.SkipCommentLines,
                 FocusGuard = _viewModel.FocusGuard,
+                StepMode = _viewModel.StepMode,
                 FocusGuardAction = (FocusGuardAction)_viewModel.FocusGuardActionIndex,
             },
             Countdown = config.Countdown with { Seconds = _viewModel.CountdownSeconds },
@@ -197,6 +199,10 @@ public sealed class AppSettingsBinder : IDisposable
 
             case nameof(MainViewModel.FocusGuard):
                 Update(config => config with { Behavior = config.Behavior with { FocusGuard = _viewModel.FocusGuard } });
+                break;
+
+            case nameof(MainViewModel.StepMode):
+                Update(config => config with { Behavior = config.Behavior with { StepMode = _viewModel.StepMode } });
                 break;
 
             case nameof(MainViewModel.FocusGuardActionIndex):
