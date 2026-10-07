@@ -46,7 +46,8 @@ public sealed class InputScheduler : IInputScheduler
     }
 
     /// <inheritdoc />
-    public event EventHandler? StepWaiting;
+    /// <remarks>载荷给出**下一行**的行号，供界面预览该行内容。</remarks>
+    public event EventHandler<StepWaitingEventArgs>? StepWaiting;
 
     private volatile bool _stopRequested;
     private volatile SchedulerState _state = SchedulerState.Idle;
@@ -193,7 +194,7 @@ public sealed class InputScheduler : IInputScheduler
                 if (_stepMode && _lastLineIndex >= 0 && units[index].LineIndex != _lastLineIndex)
                 {
                     Pause();
-                    StepWaiting?.Invoke(this, EventArgs.Empty);
+                    StepWaiting?.Invoke(this, new StepWaitingEventArgs(units[index].LineIndex));
                 }
 
                 _lastLineIndex = units[index].LineIndex;

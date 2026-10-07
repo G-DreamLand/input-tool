@@ -27,7 +27,12 @@ public interface IInputScheduler
     bool StepMode { get; set; }
 
     /// <summary>因步进而停在某一行开头（在调度线程上触发；界面据此提示"等待下一步"）。</summary>
-    event EventHandler? StepWaiting;
+    /// <remarks>
+    /// 载荷给出**下一行**的行号（<see cref="StepWaitingEventArgs.LineIndex"/>），
+    /// 界面据此提示"等待下一步"并预先显示该行内容。
+    /// 触发时机在 <see cref="Pause"/> 之后，因此此刻 <see cref="State"/> 已是 <see cref="SchedulerState.Paused"/>。
+    /// </remarks>
+    event EventHandler<StepWaitingEventArgs>? StepWaiting;
 
     /// <summary>
     /// 开始一次输入。

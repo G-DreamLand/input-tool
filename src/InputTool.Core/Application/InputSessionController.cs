@@ -433,7 +433,7 @@ public sealed class InputSessionController : IInputSessionController
     private void OnFocusRegained(object? sender, EventArgs e) => RaiseOnUi(HandleFocusRegained);
 
     /// <summary>调度器停在某一行开头（FR 新增：逐行步进）。</summary>
-    private void OnStepWaiting(object? sender, EventArgs e)
+    private void OnStepWaiting(object? sender, StepWaitingEventArgs e)
         => RaiseOnUi(() =>
         {
             _waitingForStep = true;
