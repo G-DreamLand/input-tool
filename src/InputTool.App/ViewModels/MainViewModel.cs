@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Input;
+using System.Windows.Threading;
 using InputTool.App.Commands;
 using InputTool.Core.Abstractions;
 using InputTool.Core.Application;
@@ -352,6 +353,12 @@ public sealed class MainViewModel : ViewModelBase
 
     /// <summary>目标窗口焦点守护（默认关闭，Q-04 决议）。</summary>
     private bool _stepMode;
+
+    /// <summary>失焦提示条是否由焦点守护产生（决定能否自动收起）。</summary>
+    private bool _errorFromFocusGuard;
+
+    /// <summary>自动收起失焦提示条的计时器（3 秒）。</summary>
+    private DispatcherTimer? _focusGuardNoticeTimer;
 
     /// <summary>
     /// 逐行步进：每行打完就停住，按步进热键（默认 F10）才输入下一行。
@@ -1079,6 +1086,12 @@ public sealed class MainViewModel : ViewModelBase
             StatusText = e.Reason!;
         }
 
+        // 自动继续（焦点回到目标窗口）后 3 秒收起失焦提示条
+        if (e.Current == InputSessionState.Typing && HasError && _errorFromFocusGuard)
+        {
+            ArmFocusGuardNoticeDismiss();
+        }
+
         // 进入"输入中"时把真正锁定的目标窗口回显出来，用户一眼能看出字会打到哪
         if (e.Current == InputSessionState.Typing
             && _controller?.ActiveTargetWindow is { } handle
@@ -1107,10 +1120,44 @@ public sealed class MainViewModel : ViewModelBase
 
         if (notification.Severity == ErrorSeverity.Info)
         {
+            _errorFromFocusGuard = false;
             return;
         }
 
+        // 记下这条是不是"失焦暂停"——只有它会在自动继续 3 秒后自动收起，
+        // 真正的错误（如注入失败）必须留到用户主动关闭
+        _errorFromFocusGuard = notification.Title.Contains("失去焦点");
+
         ShowError(notification.Title, notification.Message, notification.Advice ?? "请查看日志了解详情。");
+    }
+
+    /// <summary>
+    /// 焦点守护提示条：自动继续 3 秒后收起。
+    /// </summary>
+    /// <remarks>
+    /// 用户反馈：失焦暂停的黄色提示会一直压在界面上。但**不能无差别关闭提示条**——
+    /// 那会把真正的错误也一起抹掉，所以只对"失焦暂停"这一条生效。
+    /// </remarks>
+    private void ArmFocusGuardNoticeDismiss()
+    {
+        _focusGuardNoticeTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _focusGuardNoticeTimer.Tick -= OnFocusGuardNoticeTick;
+        _focusGuardNoticeTimer.Tick += OnFocusGuardNoticeTick;
+        _focusGuardNoticeTimer.Stop();
+        _focusGuardNoticeTimer.Start();
+    }
+
+    private void OnFocusGuardNoticeTick(object? sender, EventArgs e)
+    {
+        _focusGuardNoticeTimer?.Stop();
+
+        if (!_errorFromFocusGuard)
+        {
+            return;
+        }
+
+        _errorFromFocusGuard = false;
+        HasError = false;
     }
 
     private void OnSessionFinished(object? sender, SessionStatistics statistics)
