@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    InputTool.Tests — 单元测试（NFR-017：核心逻辑覆盖 ≥ 70%）
+    对应《软件开发设计文档》§12.1 单测覆盖清单。
+
+    测试栈：xUnit v3 + FluentAssertions + NSubstitute（§16.3）
+
+    为什么用 xUnit v3 + Microsoft.Testing.Platform（而非 vstest）：
+      vstest 的 testhost 是独立子进程，启动时会打开父进程句柄，
+      在本机环境下会被拒绝（Win32Exception 5），导致测试无法运行。
+      Microsoft.Testing.Platform 让测试在进程内直接运行，不派生 testhost，
+      彻底规避该问题，同时构建/执行链路更短。
+
+    注意：FluentAssertions 固定 6.x（7.x 起改为商业许可），不要升级到 7+。
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>InputTool.Tests</RootNamespace>
+    <AssemblyName>InputTool.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!-- Microsoft.Testing.Platform：可执行测试宿主 + 支持 dotnet test -->
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="FluentAssertions" Version="6.12.2" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+    <Using Include="NSubstitute" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InputTool.Core\InputTool.Core.csproj" />
+  </ItemGroup>
+
+</Project>

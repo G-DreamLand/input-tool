@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    InputTool.IntegrationTests — 需要真实桌面会话的集成测试
+    对应《软件开发设计文档》§12.2：用例打 [Trait("Category","Desktop")]，
+    无交互桌面的 CI 默认跳过，作为 M5 阶段的受控执行项。
+
+    运行器与 InputTool.Tests 保持一致：xUnit v3 + Microsoft.Testing.Platform
+    （原因见 InputTool.Tests.csproj 的说明）。
+    UseWindowsForms 用于搭一个真实的接收窗口，验证"真的能打字"。
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>InputTool.IntegrationTests</RootNamespace>
+    <AssemblyName>InputTool.IntegrationTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="FluentAssertions" Version="6.12.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InputTool.Core\InputTool.Core.csproj" />
+  </ItemGroup>
+
+</Project>

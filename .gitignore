@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────
+#  Input Tool — Git 忽略规则
+# ─────────────────────────────────────────────
+
+# 构建产物
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+artifacts/
+build/artifacts/
+*.binlog
+*.tlog
+
+# 本机沙箱环境下的构建缓存（CLI 主目录 / NuGet 包缓存）
+build/cache/
+
+# 临时探针
+scratch/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# 测试与覆盖率
+[Tt]est[Rr]esult*/
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
+*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# 发布产物（保留脚本，忽略产物）
+publish/
+*.publishsettings
+
+# 工具生成的临时文件
+*.tmp
+*.bak
+*.orig
+*.rej
+~$*
+
+# 运行时数据（绝不入库：可能含用户路径与隐私）
+config.json
+config.bad.json
+session.lock
+*.log
+logs/
+
+# 操作系统
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# 本地私有笔记 / 临时草稿
+scratch/
+*.local.md
+
+# 编译产物（只保留最新一次，目录名带编译次数）
+dist/
+build/.build-count

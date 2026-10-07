@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    InputTool.App — 表现层（WPF / MVVM）
+    依据《软件开发设计文档》§3.1 / §3.3 / §6：
+    仅包含 主窗口 / 设置 / 浮层 / 托盘 / ViewModel 与 UI 服务；
+    所有副作用（文件、注入、热键、配置、日志）都必须经 InputTool.Core 的契约完成。
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>InputTool.App</RootNamespace>
+    <!-- 交付物名称为 InputTool.exe -->
+    <AssemblyName>InputTool</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 应用图标（由 tools/gen-icon.ps1 可重复生成） -->
+    <ApplicationIcon>Assets\InputTool.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 托盘图标与窗口图标共用同一资源 -->
+    <Resource Include="Assets\InputTool.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 托盘图标（ADR-09 / §16.3 依赖白名单）》 -->
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InputTool.Core\InputTool.Core.csproj" />
+  </ItemGroup>
+
+</Project>

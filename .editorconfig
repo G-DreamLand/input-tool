@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────
+#  Input Tool — 编辑器统一代码风格
+#  依据《软件开发设计文档》§16.1 编码规范
+# ─────────────────────────────────────────────
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+
+[*.{md,json,yml,yaml,gitignore,gitattributes}]
+end_of_line = lf
+indent_size = 2
+trim_trailing_whitespace = false
+# Markdown 中行尾双空格表示换行，必须保留
+insert_final_newline = true
+
+[*.{csproj,props,targets,xaml,resx}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# ── C# 代码风格 ──────────────────────────────
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_cast = false
+csharp_space_around_binary_operators = before_and_after
+csharp_preserve_single_line_blocks = true
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+dotnet_style_readonly_field = true:warning
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+
+# using 指令
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# ── 代码质量（对齐设计文档 §16.1）────────────
+dotnet_diagnostic.CA1416.severity = none      # 平台兼容性告警：本项目仅面向 Windows
+dotnet_diagnostic.CA2007.severity = none      # ConfigureAwait：WPF 场景无需强制
+dotnet_diagnostic.IDE0055.severity = warning  # 格式问题按警告提示
+dotnet_diagnostic.CS1591.severity = none      # 内部类型不强制 XML 注释

@@ -1,0 +1,210 @@
+<Window x:Class="InputTool.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:InputTool.App.Controls"
+        xmlns:vm="clr-namespace:InputTool.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{x:Static vm:SettingsDesignData.Instance}"
+        Title="设置 — Input Tool"
+        Width="760" Height="720" MinWidth="640" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Microsoft YaHei UI" FontSize="13"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <!-- 设置窗口。分组见《软件开发设计文档》§6.5；危险操作需二次确认（§6.2）。 -->
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+            <StackPanel>
+
+                <!-- ── 常规 ── -->
+                <GroupBox Header="常规">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="主题" Width="96" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Width="160" VerticalAlignment="Center"
+                                      ItemsSource="{Binding Themes}"
+                                      SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" />
+                            <TextBlock Text="界面语言" Margin="24,0,0,0" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Width="180" Margin="8,0,0,0" VerticalAlignment="Center"
+                                      ItemsSource="{Binding Languages}"
+                                      SelectedIndex="{Binding LanguageIndex, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <CheckBox Content="关闭主窗口时最小化到托盘" VerticalAlignment="Center"
+                                      IsChecked="{Binding CloseToTray, Mode=TwoWay}" />
+                            <CheckBox Content="输入完成时播放提示音" Margin="18,0,0,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding PlayFinishSound, Mode=TwoWay}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ── 热键（FR-025）── -->
+                <GroupBox Header="热键" Margin="0,12,0,0">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                <TextBlock Text="开始 / 暂停" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,6" />
+                                <controls:HotkeyBox Width="132" Style="{StaticResource AppTextBoxStyle}"
+                                                    Gesture="{Binding StartPauseGesture, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,20,0">
+                                <TextBlock Text="紧急停止" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,6" />
+                                <controls:HotkeyBox Width="132" Style="{StaticResource AppTextBoxStyle}"
+                                                    Gesture="{Binding EmergencyStopGesture, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="0,0,20,0">
+                                <TextBlock Text="速度加快" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,6" />
+                                <controls:HotkeyBox Width="132" Style="{StaticResource AppTextBoxStyle}"
+                                                    Gesture="{Binding SpeedUpGesture, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3">
+                                <TextBlock Text="速度减慢" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,6" />
+                                <controls:HotkeyBox Width="132" Style="{StaticResource AppTextBoxStyle}"
+                                                    Gesture="{Binding SpeedDownGesture, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{Binding HotkeyMessage}" TextWrapping="Wrap" Margin="0,10,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasHotkeyError}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="恢复默认热键" Width="112" Command="{Binding ResetHotkeysCommand}" />
+                            <TextBlock Text="点击输入框后按下组合键即可录入；Esc 或 Delete 清空（FR-025.1）。"
+                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                       Style="{StaticResource HintTextStyle}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ── 文本 ── -->
+                <GroupBox Header="文本" Margin="0,12,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="默认编码" Width="96" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Width="160" VerticalAlignment="Center"
+                                      ItemsSource="{Binding EncodingModes}"
+                                      SelectedIndex="{Binding DefaultEncodingIndex, Mode=TwoWay}" />
+                            <TextBlock Text="单次输入上限" Margin="24,0,0,0" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Width="96" Margin="8,0,0,0" Text="{Binding MaxUnitsPerRun, Mode=TwoWay}" />
+                            <TextBlock Text="个单元" Margin="6,0,0,0" Style="{StaticResource FieldLabelStyle}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <CheckBox Content="解析转义序列" VerticalAlignment="Center"
+                                      IsChecked="{Binding ParseEscapes, Mode=TwoWay}"
+                                      ToolTip="默认关闭：代码与正则里的 \n 应按字面量输入（FR-004.3）" />
+                            <CheckBox Content="忽略空行" Margin="18,0,0,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding IgnoreEmptyLines, Mode=TwoWay}" />
+                            <CheckBox Content="跳过以 # 开头的行" Margin="18,0,0,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding SkipCommentLines, Mode=TwoWay}" />
+                            <CheckBox Content="末尾补回车" Margin="18,0,0,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding AppendTrailingEnter, Mode=TwoWay}"
+                                      ToolTip="仅当文本末尾本来没有换行符时才补一个回车（Q-01）" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ── 键盘 ── -->
+                <GroupBox Header="键盘" Margin="0,12,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="注入模式" Width="96" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Width="240" VerticalAlignment="Center"
+                                      ItemsSource="{Binding KeyboardModes}"
+                                      SelectedIndex="{Binding KeyboardModeIndex, Mode=TwoWay}" />
+                        </StackPanel>
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource HintTextStyle}"
+                                   Text="兼容模式依赖当前键盘布局把字符映射为「虚拟键 + 修饰键」，仅对 ASCII 可打印字符生效；中文等非 ASCII 字符仍走 Unicode 注入，可能失败（FR-011.4）。" />
+
+                        <CheckBox x:Name="ClearTargetFirstBox" Content="开始输入前先清空目标框内容（Ctrl+A + Delete）"
+                                  Margin="0,12,0,0" VerticalAlignment="Center"
+                                  IsChecked="{Binding ClearTargetFirst, Mode=TwoWay}"
+                                  Checked="OnDangerousOptionChecked" />
+                        <TextBlock Margin="24,4,0,0" Style="{StaticResource HintTextStyle}"
+                                   Text="默认关闭。开启后会在输入前清空目标输入框，可能造成数据丢失（FR-026）。" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ── 高级 ── -->
+                <GroupBox Header="高级" Margin="0,12,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="日志级别" Width="96" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Width="120" VerticalAlignment="Center"
+                                      ItemsSource="{Binding LogLevels}"
+                                      SelectedIndex="{Binding LogLevelIndex, Mode=TwoWay}" />
+                            <TextBlock Text="保留天数" Margin="24,0,0,0" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Width="72" Margin="8,0,0,0" Text="{Binding LogRetentionDays, Mode=TwoWay}" />
+                            <Button Content="打开日志目录" Width="112" Margin="16,0,0,0"
+                                    Command="{Binding OpenLogsCommand}" />
+                        </StackPanel>
+
+                        <CheckBox x:Name="LogContentBox"
+                                  Content="在日志中记录输入内容摘要（前 80 字符）"
+                                  Margin="0,12,0,0" VerticalAlignment="Center"
+                                  IsChecked="{Binding LogContent, Mode=TwoWay}"
+                                  Checked="OnDangerousOptionChecked" />
+                        <TextBlock Margin="24,4,0,0" Style="{StaticResource HintTextStyle}"
+                                   Text="默认关闭。开启后日志可能记录身份证号、手机号等敏感内容，请自行评估风险（FR-021.3 / Q-06）。" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- ── 关于 ── -->
+                <GroupBox Header="关于" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding VersionText, StringFormat=版本 {0}}" FontWeight="SemiBold"
+                                   Style="{StaticResource ValueTextStyle}" />
+                        <TextBlock Text="{Binding AboutText}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" LineHeight="20" />
+                    </StackPanel>
+                </GroupBox>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                       Style="{StaticResource HintTextStyle}"
+                       Text="设置即时生效；持久化将在接入配置服务后写入 config.json。" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="恢复默认设置" Width="118" Margin="0,0,8,0" Command="{Binding ResetAllCommand}" />
+                <Button Content="关闭" Width="88" Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding CloseCommand}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

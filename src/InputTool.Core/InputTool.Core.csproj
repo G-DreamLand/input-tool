@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    InputTool.Core — 领域服务层
+    依据《软件开发设计文档》§3.1 / §3.3：
+    本层包含 文件 / 解析 / 调度 / 注入 / 热键 / 配置 / 日志 / 平台互操作 / 应用编排。
+    约束（NFR-016）：禁止引用 WPF（PresentationFramework 等），保证可在无 UI 环境下单测。
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>InputTool.Core</RootNamespace>
+    <AssemblyName>InputTool.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- .NET 8 默认不含 GBK / GB18030 / ANSI(936) 编码，需显式引入（设计文档 §5.1.2） -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 测试项目需要访问内部类型（JSON 源生成上下文、Win32 常量等），
+         这比把实现细节提升为 public 更干净。 -->
+    <InternalsVisibleTo Include="InputTool.Tests" />
+    <InternalsVisibleTo Include="InputTool.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

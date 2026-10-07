@@ -1,0 +1,38 @@
+# 统一换行符：仓库内一律 LF，检出到工作区时 C#/XAML 用 CRLF（Windows 开发）
+* text=auto eol=lf
+
+*.cs    text eol=crlf
+*.xaml  text eol=crlf
+*.csproj text eol=crlf
+*.sln   text eol=crlf
+
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+.gitignore   text eol=lf
+.gitattributes text eol=lf
+.editorconfig  text eol=lf
+
+# 二进制文件不做换行转换
+*.png   binary
+*.ico   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.zip   binary
+*.7z    binary
+*.exe   binary
+*.dll   binary
+*.pdb   binary
+*.snk   binary
+*.pfx   binary
+
+# 便于 GitHub 语言统计与 diff
+*.cs    diff=csharp
+*.xaml  diff=html

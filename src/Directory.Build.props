@@ -1,0 +1,56 @@
+<Project>
+
+  <!--
+    Input Tool — 全解决方案统一编译属性
+    依据《软件开发设计文档》§3.3（工程结构）与 §13.1（编译配置）
+    本文件位于 src/ 下，自动作用于全部子项目。
+  -->
+
+  <PropertyGroup>
+    <!-- 目标框架：全部项目统一为 net8.0-windows10.0.17763.0
+         · 必须写成带平台版本的形式：net8.0-windows（无版本号）的
+           TargetPlatformVersion 默认为 7.0，与 NFR-009 要求的
+           "Windows 10 1809 及以上"冲突（NETSDK1135）。
+         · Core 需要调用 Win32 API（P/Invoke），Test 项目引用 Core，App 使用 WPF。 -->
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
+
+    <!-- 版本号单一来源（§13.1）：发布时由 build/publish.ps1 覆盖 -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>Input Tool</Product>
+    <Description>键盘文本自动输入工具</Description>
+
+    <!-- 代码风格随构建检查（§16.1） -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- CA1416：本项目只面向 Windows，无需逐处标注平台 -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+
+    <!-- 关闭引用程序集（reference assembly）生成。
+         原因：WPF 的标记编译会派生一个 _wpftmp 临时工程，它在并行（/m）构建时
+         与主工程图争用 obj/**/ref（或 refint）下的程序集文件，触发
+         CS0009 / CS2012「文件正被另一进程使用」错误。
+         本项目解决方案规模很小，关闭引用程序集不影响构建效率。 -->
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+
+    <!-- Release 下把警告当错误（§13.1） -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- 发布形态：WPF 不支持完整裁剪（§13.1、TR-02） -->
+  <PropertyGroup>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+</Project>

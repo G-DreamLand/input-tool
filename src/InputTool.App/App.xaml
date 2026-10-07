@@ -1,0 +1,19 @@
+<Application x:Class="InputTool.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!--
+                合并顺序有约束（ThemeManager 依赖它）：
+                  [0] 主题字典 —— 只含颜色与画刷，运行期可被整体替换
+                  [1] 设计令牌 —— 尺寸/字号/圆角，与主题无关
+                  [2] 控件样式 —— 引用上面两者
+            -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Theme.Light.xaml" />
+                <ResourceDictionary Source="Themes/Tokens.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
