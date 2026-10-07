@@ -551,6 +551,19 @@ public sealed class InputSessionControllerTests
         h.Controller.FocusGuardEnabled = true;
         h.Controller.StepMode = true;
 
+        // 步进暂停与焦点守护暂停**共用 Paused 状态**，所以不能只等 "状态 == Paused"：
+        // 那会在"步进暂停"上就满足，抢在下面 RaiseFocusLost() 之前继续跑下去，
+        // RaiseFocusRegained() 就撞在 _pausedByFocusGuard 还没置位的时候（实测偶发挂死）。
+        // 这里按迁移原因精确等待"焦点守护造成的暂停"。
+        var pausedByFocusGuard = false;
+        h.Controller.StateChanged += (_, e) =>
+        {
+            if (e.Current == InputSessionState.Paused && e.Reason is { } reason && reason.Contains("失去焦点"))
+            {
+                pausedByFocusGuard = true;
+            }
+        };
+
         var firstStepHandled = false;
 
         h.Scheduler.StepWaiting += (_, _) =>
@@ -569,7 +582,7 @@ public sealed class InputSessionControllerTests
         var finished = ExpectFinished(h.Controller);
         h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
 
-        SpinWait.SpinUntil(() => h.Controller.State == InputSessionState.Paused, TimeSpan.FromSeconds(5))
+        SpinWait.SpinUntil(() => pausedByFocusGuard, TimeSpan.FromSeconds(5))
             .Should().BeTrue("步进继续之后焦点守护必须仍然能暂停（标志残留会让它彻底失效）");
 
         h.Focus.RaiseFocusRegained();
@@ -579,6 +592,141 @@ public sealed class InputSessionControllerTests
         h.Emitter.Emitted.Should().NotBeEmpty();
     }
 
+    // ── 步进时显示下一行（FR 新增）──────────────────────────────────────
+
+    /// <summary>收集 <see cref="InputSessionController.StepLineChanged"/>。</summary>
+    /// <remarks>事件可能经同步上下文投递，因此用锁保护，不要直接读 List。</remarks>
+    private sealed class StepLineRecorder
+    {
+        private readonly object _gate = new();
+        private readonly List<StepLineChangedEventArgs> _seen = new();
+
+        public void Attach(InputSessionController controller)
+            => controller.StepLineChanged += OnChanged;
+
+        public StepLineChangedEventArgs[] Snapshot()
+        {
+            lock (_gate)
+            {
+                return _seen.ToArray();
+            }
+        }
+
+        private void OnChanged(object? sender, StepLineChangedEventArgs e)
+        {
+            lock (_gate)
+            {
+                _seen.Add(e);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task 步进等待时_应广播下一行的源文本()
+    {
+        var h = Build();
+        h.Controller.StepMode = true;
+
+        var recorder = new StepLineRecorder();
+        recorder.Attach(h.Controller);
+
+        // 代按 F9：不继续的话调度器会一直等在行首，测试会挂住
+        h.Scheduler.StepWaiting += (_, _) => h.Controller.Resume();
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
+        await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        var shown = recorder.Snapshot().Where(x => x.IsWaiting).ToArray();
+
+        shown.Should().HaveCount(2, "进入第 2、3 行各显示一次（第一行不停）");
+        shown.Select(x => x.LineNumber).Should().Equal(2, 3);
+
+        // 显示的必须是**源文本行**（"bb" / "cc"），不是别的东西
+        shown.Select(x => x.DisplayText).Should().Equal("bb", "cc");
+    }
+
+    [Fact]
+    public async Task 步进遇到空行_应广播空行标记()
+    {
+        var h = Build();
+        h.Controller.StepMode = true;
+
+        var recorder = new StepLineRecorder();
+        recorder.Attach(h.Controller);
+        h.Scheduler.StepWaiting += (_, _) => h.Controller.Resume();
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\n\nbb"), 0, Profile());
+        await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        var shown = recorder.Snapshot().Where(x => x.IsWaiting).ToArray();
+
+        shown.Should().HaveCount(2);
+        shown[0].LineNumber.Should().Be(2);
+        shown[0].DisplayText.Should().Be(
+            SourceLineText.EmptyLineMarker,
+            "空行必须显式显示为「（空行）」，不能是一片空白");
+        shown[1].DisplayText.Should().Be("bb");
+    }
+
+    [Fact]
+    public async Task 离开步进等待_应广播收起()
+    {
+        var h = Build();
+        h.Controller.StepMode = true;
+
+        var recorder = new StepLineRecorder();
+        recorder.Attach(h.Controller);
+        h.Scheduler.StepWaiting += (_, _) => h.Controller.Resume();
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
+        await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        recorder.Snapshot().Should().Contain(
+            x => !x.IsWaiting,
+            "继续之后必须通知界面收起「下一行」浮层");
+    }
+
+    [Fact]
+    public async Task 步进等待期间急停_应广播收起()
+    {
+        var h = Build();
+        h.Controller.StepMode = true;
+
+        var recorder = new StepLineRecorder();
+        recorder.Attach(h.Controller);
+
+        // 等待期间按急停（F10），而不是继续
+        h.Scheduler.StepWaiting += (_, _) => h.Controller.Stop();
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
+        var result = await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        result.Outcome.Should().Be(SessionOutcome.Stopped);
+        recorder.Snapshot().Should().Contain(
+            x => !x.IsWaiting,
+            "急停必须立刻收起「下一行」浮层，不能等到输入线程收尾");
+    }
+
+    [Fact]
+    public async Task 未启用步进_不应显示下一行()
+    {
+        var h = Build();
+
+        var recorder = new StepLineRecorder();
+        recorder.Attach(h.Controller);
+
+        var finished = ExpectFinished(h.Controller);
+        h.Controller.Start(Document("aa\nbb\ncc"), 0, Profile());
+        await finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        recorder.Snapshot().Should().NotContain(
+            x => x.IsWaiting,
+            "开关关闭时行为必须与以前完全一致：不该有任何「下一行」浮层");
+    }
     // ── 统计与提示 ──────────────────────────────────────────────────────
 
     [Fact]

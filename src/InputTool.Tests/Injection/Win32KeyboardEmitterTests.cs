@@ -305,14 +305,32 @@ public sealed class Win32KeyboardEmitterTests
     // ── 线程亲和（§9.3 约定 1）────────────────────────────────────────
 
     [Fact]
-    public async Task 绑定线程后跨线程注入_应抛出()
+    public void 绑定线程后跨线程注入_应抛出()
     {
         var (emitter, _) = Build();
         emitter.AttachThread();
 
-        var act = async () => await Task.Run(() => emitter.Emit(Char('a'), SpeedProfile.Default));
+        // 不能用 Task.Run 来制造"另一个线程"：线程池完全可能把排队中的委托交给
+        // 刚刚被释放的当前线程去执行，那样 Emit 根本没有跨线程，用例就会偶发假失败
+        // （加入并行度更高的测试后实测复现）。专用线程才能确定性地保证"不是绑定线程"。
+        Exception? captured = null;
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        var worker = new Thread(() =>
+        {
+            try
+            {
+                emitter.Emit(Char('a'), SpeedProfile.Default);
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+        });
+
+        worker.Start();
+        worker.Join(TimeSpan.FromSeconds(10)).Should().BeTrue("专用线程应当在超时前结束");
+
+        captured.Should().BeOfType<InvalidOperationException>();
     }
 
     [Fact]
