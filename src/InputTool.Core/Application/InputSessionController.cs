@@ -146,8 +146,11 @@ public sealed class InputSessionController : IInputSessionController
             return;
         }
 
-        // 用户手动继续：清掉"焦点守护造成的暂停"标记，避免焦点回来时重复恢复
+        // 用户手动继续：清掉"焦点守护造成的暂停"标记，避免焦点回来时重复恢复。
+        // 同时清掉"等待步进"——步进继续现在就走这条路（F9），
+        // 若不清，焦点守护会因为 _waitingForStep 一直为 true 而**永久失效**。
         _pausedByFocusGuard = false;
+        _waitingForStep = false;
         _scheduler.Resume();
         SetState(InputSessionState.Typing, "继续输入");
     }
@@ -428,21 +431,6 @@ public sealed class InputSessionController : IInputSessionController
     private void OnFocusLost(object? sender, EventArgs e) => RaiseOnUi(HandleFocusLost);
 
     private void OnFocusRegained(object? sender, EventArgs e) => RaiseOnUi(HandleFocusRegained);
-
-    /// <inheritdoc />
-    public void StepNext()
-    {
-        // 只在等待步进（或用户暂停）时有效；运行中/空闲时按了不产生副作用，也不排队
-        if (_state != InputSessionState.Paused)
-        {
-            return;
-        }
-
-        _waitingForStep = false;
-        _pausedByFocusGuard = false;
-        _scheduler.Resume();
-        SetState(InputSessionState.Typing, "步进：继续下一行");
-    }
 
     /// <summary>调度器停在某一行开头（FR 新增：逐行步进）。</summary>
     private void OnStepWaiting(object? sender, EventArgs e)

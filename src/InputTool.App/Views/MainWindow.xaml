@@ -253,9 +253,9 @@
                             <CheckBox Content="跳过以 # 开头的行" Margin="18,0,0,0" VerticalAlignment="Center"
                                       IsChecked="{Binding SkipCommentLines, Mode=TwoWay}"
                                       IsEnabled="{Binding IsDocumentEditable}" />
-                            <CheckBox Content="逐行步进（F10 继续下一行）" Margin="18,0,0,0" VerticalAlignment="Center"
+                            <CheckBox Content="逐行步进（按 F9 继续下一行）" Margin="18,0,0,0" VerticalAlignment="Center"
                               IsChecked="{Binding StepMode, Mode=TwoWay}"
-                              ToolTip="启用后每行打完就停住，按 F10 才输入下一行；空行也算一步（脚本语义）" />
+                              ToolTip="启用后每行打完就停住，按 F9 才输入下一行；空行也算一步（脚本语义）" />
                     <CheckBox Content="目标窗口焦点守护" Margin="18,0,0,0" VerticalAlignment="Center"
                                       IsChecked="{Binding FocusGuard, Mode=TwoWay}"
                                       IsEnabled="{Binding IsDocumentEditable}"
