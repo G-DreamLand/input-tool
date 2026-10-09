@@ -25,6 +25,18 @@ internal enum PreviewView
 
     /// <summary>输入进度浮层。</summary>
     OverlayProgress,
+
+    /// <summary>「下一行」浮层：常规缩进行（Tab 显示为 →）。</summary>
+    OverlayStepLine,
+
+    /// <summary>「下一行」浮层：超长行（验证限宽折行与限高滚动）。</summary>
+    OverlayStepLineLong,
+
+    /// <summary>「下一行」浮层：空行（必须显示「（空行）」，不能是一片空白）。</summary>
+    OverlayStepLineEmpty,
+
+    /// <summary>「下一行」浮层：极长行（必须被限高截住并转为内部滚动，而不是无限长高）。</summary>
+    OverlayStepLineHuge,
 }
 
 /// <summary>
@@ -72,6 +84,10 @@ internal static class UiPreviewRenderer
             "settings" => PreviewView.Settings,
             "overlay-countdown" => PreviewView.OverlayCountdown,
             "overlay-progress" => PreviewView.OverlayProgress,
+            "overlay-step" => PreviewView.OverlayStepLine,
+            "overlay-step-long" => PreviewView.OverlayStepLineLong,
+            "overlay-step-empty" => PreviewView.OverlayStepLineEmpty,
+            "overlay-step-huge" => PreviewView.OverlayStepLineHuge,
             _ => PreviewView.Main,
         };
     }
@@ -111,6 +127,29 @@ internal static class UiPreviewRenderer
 
             case PreviewView.OverlayProgress:
                 RenderOverlay(outputPath, countdown: false);
+                break;
+
+            // 「下一行」浮层：显示文本走与运行时**同一个** SourceLineText，
+            // 因此这三张图同时验证了"显示源文本 / 空行标记 / 限宽限高"
+            case PreviewView.OverlayStepLine:
+                RenderStepLine(outputPath, "\t\tssh root@192.168.1.10 \"systemctl status nginx\"");
+                break;
+
+            case PreviewView.OverlayStepLineLong:
+                RenderStepLine(
+                    outputPath,
+                    "这一行故意很长，用来验证限宽与限高：超宽必须折行而不是把浮层撑成一条横向长带，"
+                    + "超高则应当落在有高度上限的滚动区里，既不静默截断也不占满屏幕。");
+                break;
+
+            case PreviewView.OverlayStepLineEmpty:
+                RenderStepLine(outputPath, string.Empty);
+                break;
+
+            // 极长行：这里不设字符上限，就是为了把"限高"逼出来——
+            // 若无 MaxHeight 兜底，窗口会长到上千像素
+            case PreviewView.OverlayStepLineHuge:
+                RenderStepLine(outputPath, new string('长', 3000));
                 break;
 
             default:
@@ -190,6 +229,42 @@ internal static class UiPreviewRenderer
         Save(overlay, outputPath, width, height, new SolidColorBrush(Color.FromRgb(0x6E, 0x74, 0x7C)));
 
         overlay.HideOverlay();
+        overlay.Close();
+    }
+
+    /// <summary>
+    /// 渲染「下一行」浮层（FR 新增：步进时显示下一行）。
+    /// </summary>
+    /// <param name="outputPath">输出 PNG 路径。</param>
+    /// <param name="sourceLine">
+    /// **源文本行**（未格式化）。这里刻意调 <see cref="SourceLineText.ToDisplayText"/>，
+    /// 与控制器运行时用的是同一段逻辑，避免"预览很好看、真机另一套"。
+    /// </param>
+    private static void RenderStepLine(string outputPath, string? sourceLine)
+    {
+        var overlay = new OverlayWindow
+        {
+            // 与 AppShell 一样由外部注入实际生效的热键文案
+            EmergencyStopHotkeyText = "F10",
+            StartPauseHotkeyText = "F9",
+        };
+
+        overlay.ShowStepLine(
+            lineNumber: 2,
+            displayText: SourceLineText.ToDisplayText(sourceLine),
+            position: OverlayPosition.BottomRight);
+
+        overlay.UpdateLayout();
+        Flush(overlay);
+
+        Save(
+            overlay,
+            outputPath,
+            (int)Math.Ceiling(overlay.ActualWidth),
+            (int)Math.Ceiling(overlay.ActualHeight),
+            new SolidColorBrush(Color.FromRgb(0x6E, 0x74, 0x7C)));
+
+        overlay.HideStepLine();
         overlay.Close();
     }
 

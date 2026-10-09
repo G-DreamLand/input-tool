@@ -134,10 +134,21 @@ dotnet $dll --render-preview docs/prototype/ui-overlay-progress.png  --view over
 
 # 用真实文件跑完整管线后渲染（端到端验证 / 文档截图）
 dotnet $dll --render-preview docs/prototype/ui-main-loaded-light.png --view main --file docs/prototype/sample-text.txt
+
+# 「下一行」浮层（步进时显示下一行）：三个视图分别盯住三条硬约束
+dotnet $dll --render-preview scratch/ui-preview/ui-overlay-step.png       --view overlay-step
+dotnet $dll --render-preview scratch/ui-preview/ui-overlay-step-empty.png --view overlay-step-empty
+dotnet $dll --render-preview scratch/ui-preview/ui-overlay-step-huge.png  --view overlay-step-huge
 ```
 
-`--view` 可选 `main` / `settings` / `overlay-countdown` / `overlay-progress`；
+`--view` 可选 `main` / `settings` / `overlay-countdown` / `overlay-progress` /
+`overlay-step` / `overlay-step-long` / `overlay-step-empty` / `overlay-step-huge`；
 `--file` 让主界面走真实文档管线。半透明浮层会自动合成到中性底色上以便查看。
+
+后三个「下一行」视图直接用与运行时同一段 `SourceLineText`，因此**图即实证**：
+`-empty` 证明空行确实画出「（空行）」而不是空白，`-long` / `-huge` 证明超长行是折行 + 限高
+（`-huge` 用 3000 字一行把限高逼出来：不设上限会长到 ~1300px，实测被截在 ~300px）。
+
 产物见 [docs/prototype/](docs/prototype/)。
 
 ## 文本管线（M3 第一轮）
