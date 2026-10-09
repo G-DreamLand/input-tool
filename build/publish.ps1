@@ -165,6 +165,12 @@ if ($wantSingle) {
     $singleExe = Join-Path $singleDir "InputTool-$version-$Runtime-single.exe"
     Move-Item -LiteralPath $rawExe -Destination $singleExe -Force
 
+    # "单文件"就该只有一个文件：Core 是单独构建的，它的 pdb 会被发布流程捎带进来，
+    # 留着会让交付目录看起来像需要多文件、也白占体积
+    Get-ChildItem -LiteralPath $singleDir -File |
+        Where-Object { $_.FullName -ne $singleExe } |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+
     $sizeMb = [Math]::Round((Get-Item -LiteralPath $singleExe).Length / 1MB, 1)
     Write-Host "  单文件：$([System.IO.Path]::GetFileName($singleExe))（$sizeMb MB）" -ForegroundColor DarkGray
 
