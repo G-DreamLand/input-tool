@@ -81,6 +81,41 @@ dotnet build src/InputTool.sln -c Debug
 dotnet run --project src/InputTool.Tests -c Debug
 ```
 
+### 打包发布（想拿到"拷到哪都能打开"的 exe 就看这里）
+
+**`build/build.ps1` 产出的 `dist\build-<NNN>\` 是「框架依赖的多文件发布」**，
+其中的 `InputTool.exe` 只是 apphost，**必须与同目录的 `InputTool.dll` 等文件一起**才能运行。
+所以只把那一个 exe 拷到别处会直接失败：
+
+```
+The application to execute does not exist: '...\InputTool.dll'
+```
+
+而且即便整个目录一起拷走，目标机器也**必须预装 .NET 8 桌面运行时**，否则同样打不开。
+
+要一个"拷到哪都能双击运行"的 exe，用发布脚本（对应设计文档 §13.2 / §13.3）：
+
+```powershell
+# 默认：Release + 测试门禁 + 单文件自包含 + 绿色目录包
+pwsh -File build/publish.ps1
+
+# 跳过测试门禁（自己确认过测试没问题时）
+pwsh -File build/publish.ps1 -SkipTests
+
+# 只出绿色目录版（体积小，目标机需装 .NET 8 桌面运行时）
+pwsh -File build/publish.ps1 -FrameworkDependent
+```
+
+产物（位于 `build/artifacts/<runtime>/`）：
+
+| 产物 | 形态 | 说明 |
+| --- | --- | --- |
+| `InputTool-1.0.0-win-x64-single.exe` | 单文件自包含 | **首选项**：一个 exe 内含 .NET 运行时，拷到哪都能双击运行，约 85 MB |
+| `InputTool-win-x64-portable.zip` | 绿色目录包 | 框架依赖，体积小（约 6 MB），需目标机装 .NET 8 桌面运行时 |
+| `SHA256SUMS.txt` | 校验和 | 用于分发后核对 |
+
+脚本内置**体积门禁**：单文件超过 100 MB（设计文档 §13.4）直接判失败。
+
 ### 为什么测试用 `dotnet run` 而不是 `dotnet test`
 
 测试栈是 **xUnit v3 + Microsoft.Testing.Platform**，测试工程本身就是一个可执行程序。
