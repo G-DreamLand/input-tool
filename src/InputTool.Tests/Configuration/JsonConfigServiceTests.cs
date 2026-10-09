@@ -158,6 +158,110 @@ public sealed class JsonConfigServiceTests : IDisposable
         service.Current.Logging.RetentionDays.Should().Be(90);
     }
 
+    [Fact]
+    public void 默认急停热键_应与常量一致()
+    {
+        // 主构造参数的默认值只能是字面量，无法直接引用常量；
+        // 这条用例守住这处重复，避免将来只改一边。
+        new HotkeysConfig().EmergencyStop.Should().Be(HotkeysConfig.DefaultEmergencyStop);
+        AppConfig.Default.Hotkeys.EmergencyStop.Should().Be(HotkeysConfig.DefaultEmergencyStop);
+    }
+    // ── 版本迁移（v1 → v2）──────────────────────────────────────────────
+
+    /// <summary>写一个 v1 配置（急停为指定值）到配置文件。</summary>
+    private async Task WriteV1ConfigAsync(string emergencyStop, int version = 1)
+    {
+        var path = Path.Combine(_directory, "config.json");
+        await File.WriteAllTextAsync(
+            path,
+            $$"""{ "version": {{version}}, "hotkeys": { "emergencyStop": "{{emergencyStop}}" } }""",
+            Ct);
+    }
+
+    [Fact]
+    public async Task 旧配置里的急停出厂默认值_应迁移为当前的F10()
+    {
+        // 回归用例（真机报障：按 F10 毫无反应）：
+        // v1 的出厂默认是 Ctrl+Alt+F11，后来改成 F10；但热键"以配置为准"，
+        // 旧配置里存着旧默认值 → 每次启动都是先注册 F10、再被配置改成 Ctrl+Alt+F11。
+        await WriteV1ConfigAsync("Ctrl+Alt+F11");
+
+        using var service = CreateService();
+        await service.LoadAsync(Ct);
+
+        service.Current.Hotkeys.EmergencyStop.Should().Be(
+            HotkeysConfig.DefaultEmergencyStop,
+            "旧出厂默认值必须迁移，否则界面上的 F10 永远不生效");
+        service.Current.Version.Should().Be(AppConfig.CurrentVersion);
+    }
+
+    [Fact]
+    public async Task 旧默认值的大小写与空格差异_也应被识别并迁移()
+    {
+        await WriteV1ConfigAsync("ctrl + alt + f11");
+
+        using var service = CreateService();
+        await service.LoadAsync(Ct);
+
+        service.Current.Hotkeys.EmergencyStop.Should().Be(HotkeysConfig.DefaultEmergencyStop);
+    }
+
+    [Fact]
+    public async Task 用户自己改过的急停热键_迁移不得覆盖()
+    {
+        await WriteV1ConfigAsync("Ctrl+Shift+F12");
+
+        using var service = CreateService();
+        await service.LoadAsync(Ct);
+
+        service.Current.Hotkeys.EmergencyStop.Should().Be(
+            "Ctrl+Shift+F12",
+            "迁移只纠正 v1 的出厂默认值，不能动用户自己选的组合");
+    }
+
+    [Fact]
+    public async Task 已是当前版本的配置_不再迁移()
+    {
+        await WriteV1ConfigAsync("Ctrl+Alt+F11", version: AppConfig.CurrentVersion);
+
+        using var service = CreateService();
+        await service.LoadAsync(Ct);
+
+        service.Current.Hotkeys.EmergencyStop.Should().Be(
+            "Ctrl+Alt+F11",
+            "版本已是当前，文件怎么写就怎么用（迁移不得反复生效）");
+    }
+
+    [Fact]
+    public async Task 迁移结果应立刻落盘()
+    {
+        await WriteV1ConfigAsync("Ctrl+Alt+F11");
+
+        using (var service = CreateService())
+        {
+            await service.LoadAsync(Ct);
+        }
+
+        var json = await File.ReadAllTextAsync(Path.Combine(_directory, "config.json"), Ct);
+        json.Should().Contain("F10");
+        json.Should().NotContain("Ctrl+Alt+F11", "迁移后不该再残留旧默认值");
+    }
+
+    [Fact]
+    public async Task 未迁移的配置_不应因为加载而改写文件()
+    {
+        await WriteV1ConfigAsync("Ctrl+Shift+F12");
+
+        var path = Path.Combine(_directory, "config.json");
+        var before = await File.ReadAllTextAsync(path, Ct);
+
+        using (var service = CreateService())
+        {
+            await service.LoadAsync(Ct);
+        }
+
+        (await File.ReadAllTextAsync(path, Ct)).Should().Be(before, "没有可迁移的内容时不该多写一次盘");
+    }
     // ── 保存 ────────────────────────────────────────────────────────────
 
     [Fact]

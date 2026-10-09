@@ -91,7 +91,16 @@ public sealed class JsonConfigService : IConfigService, IDisposable
             var loaded = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.AppConfig)
                          ?? throw new JsonException("反序列化结果为空");
 
-            Replace(Normalize(Migrate(loaded)));
+            var migrated = Migrate(loaded, out var migrationChanged);
+            Replace(Normalize(migrated));
+
+            if (migrationChanged)
+            {
+                // 迁移结果必须落盘：否则每次启动都要再迁一遍，用户也无从知道值被纠正过
+                await SaveNowAsync(cancellationToken).ConfigureAwait(false);
+                _logger?.Info("配置迁移结果已落盘", "Config");
+            }
+
             _logger?.Info(
                 $"配置已加载：{ConfigFilePath}（便携模式={IsPortableMode}）",
                 "Config");
@@ -226,18 +235,56 @@ public sealed class JsonConfigService : IConfigService, IDisposable
         }
     }
 
-    /// <summary>版本迁移。当前只有 v1，这里保留扩展点。</summary>
-    private static AppConfig Migrate(AppConfig config)
+    /// <summary>版本迁移。</summary>
+    /// <param name="config">从磁盘读到的配置。</param>
+    /// <param name="changed">迁移是否真的改动了内容（决定要不要立刻落盘）。</param>
+    /// <remarks>
+    /// 版本高于本程序时**保留字段**原样返回（向前兼容，不猜测未来语义）；
+    /// 版本低于本程序时按顺序执行 v1→v2→… 的迁移。
+    /// </remarks>
+    private AppConfig Migrate(AppConfig config, out bool changed)
     {
-        if (config.Version == AppConfig.CurrentVersion)
+        changed = false;
+
+        if (config.Version >= AppConfig.CurrentVersion)
         {
             return config;
         }
 
-        // 版本高于本程序时保留字段、按当前版本处理（向前兼容）
-        // 版本低于本程序时，在此按顺序执行 v1→v2→… 的迁移
-        return config with { Version = AppConfig.CurrentVersion };
+        var migrated = config;
+
+        // ── v1 → v2 ──
+        // v1 时期【紧急停止】的出厂默认是 Ctrl+Alt+F11，后来改成 F10。
+        // 热键**以配置为准**，而旧配置里存着那个旧默认值，
+        // 于是每次启动都是"先注册 F10、再被配置改成 Ctrl+Alt+F11"，
+        // 用户按界面写着的 F10 毫无反应（真机报障）。
+        // 只纠正"恰好等于 v1 出厂默认"的值；用户自己改过的组合一律不覆盖。
+        if (migrated.Version < 2 && IsLegacyEmergencyStopDefault(migrated.Hotkeys?.EmergencyStop))
+        {
+            var hotkeys = migrated.Hotkeys ?? new HotkeysConfig();
+            migrated = migrated with
+            {
+                Hotkeys = hotkeys with { EmergencyStop = HotkeysConfig.DefaultEmergencyStop },
+            };
+            changed = true;
+
+            _logger?.Info(
+                "配置迁移 v1→v2：紧急停止热键 "
+                + $"{HotkeysConfig.LegacyEmergencyStopDefaultV1} → {HotkeysConfig.DefaultEmergencyStop}"
+                + "（旧值是 v1 的出厂默认，留着会让当前的 F10 失效）",
+                "Config");
+        }
+
+        return migrated with { Version = AppConfig.CurrentVersion };
     }
+
+    /// <summary>是否恰好是 v1 的急停出厂默认值（容忍大小写与空格差异）。</summary>
+    private static bool IsLegacyEmergencyStopDefault(string? text)
+        => !string.IsNullOrWhiteSpace(text)
+           && string.Equals(
+               text.Replace(" ", string.Empty, StringComparison.Ordinal),
+               HotkeysConfig.LegacyEmergencyStopDefaultV1,
+               StringComparison.OrdinalIgnoreCase);
 
     /// <summary>把越界值 clamp 回合法范围（手工编辑过的配置也要能安全吃下）。</summary>
     /// <remarks>

@@ -94,9 +94,25 @@ public sealed record CountdownConfig(
 /// <summary>热键配置（文本形式，便于用户手工编辑）。</summary>
 public sealed record HotkeysConfig(
     string StartPause = "F9",
+    // 注：主构造参数默认值取不到下面那个常量（不在同一作用域），只能写死字面量；
+    // 二者必须一致，已有用例 `默认急停热键_应与常量一致` 守住。
     string EmergencyStop = "F10",
     string SpeedUp = "Ctrl+Alt+Up",
-    string SpeedDown = "Ctrl+Alt+Down");
+    string SpeedDown = "Ctrl+Alt+Down")
+{
+    /// <summary>【紧急停止】当前出厂默认。</summary>
+    public const string DefaultEmergencyStop = "F10";
+
+    /// <summary>
+    /// v1 时期【紧急停止】的出厂默认值。
+    /// </summary>
+    /// <remarks>
+    /// v1→v2 迁移据此识别"这个值只是旧出厂默认、不是用户自己改的"，从而安全纠正。
+    /// 背景：热键以配置为准，而配置一旦落盘就永远带着旧默认值——
+    /// 改了默认值却不迁移，老用户按界面上写着的 F10 会毫无反应（真机报障）。
+    /// </remarks>
+    public const string LegacyEmergencyStopDefaultV1 = "Ctrl+Alt+F11";
+}
 
 /// <summary>界面配置。</summary>
 public sealed record UiConfig(
@@ -127,7 +143,11 @@ public sealed record TargetConfig(
 /// </summary>
 public sealed record AppConfig
 {
-    /// <summary>配置结构版本，用于迁移。</summary>
+    /// <summary>
+    /// 配置结构版本，用于迁移。
+    /// 缺省值刻意保持 1：老配置或手写配置里没有 <c>version</c> 字段时按**最老版本**处理，
+    /// 迁移链才会跑起来（<see cref="AppConfig.Default"/> 另行显式带上当前版本）。
+    /// </summary>
     public int Version { get; init; } = 1;
 
     public FileConfig File { get; init; } = new();
@@ -140,8 +160,11 @@ public sealed record AppConfig
     public TargetConfig Target { get; init; } = new();
 
     /// <summary>默认配置（SRS 附录 A）。</summary>
-    public static AppConfig Default { get; } = new();
+    public static AppConfig Default { get; } = new() { Version = CurrentVersion };
 
-    /// <summary>当前支持的配置结构版本。</summary>
-    public const int CurrentVersion = 1;
+    /// <summary>
+    /// 当前支持的配置结构版本。
+    /// v2：把 v1 时期落盘的旧急停默认值 Ctrl+Alt+F11 迁移为 F10。
+    /// </summary>
+    public const int CurrentVersion = 2;
 }
