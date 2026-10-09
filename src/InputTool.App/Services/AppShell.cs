@@ -40,6 +40,18 @@ public sealed class AppShell : IDisposable
     private FullTextViewWindow? _fullTextWindow;
     private bool _exiting;
 
+    /// <summary>
+    /// 主窗口是否正处在关闭过程中（用户点 X、系统关机等）。
+    /// </summary>
+    /// <remarks>
+    /// 用户点 X 且「关闭到托盘」关闭时，<see cref="OnMainWindowClosing"/> 会直接把流程导给
+    /// <see cref="Exit"/>；而此刻窗口**已经在关闭中**，<see cref="Exit"/> 末尾再调
+    /// <c>_mainWindow.Close()</c> 会抛
+    /// <c>InvalidOperationException：在窗口关闭期间，无法...调用 Close</c>
+    /// （真机日志里每次关窗都留下一条 [Crash]，就是这么来的）。
+    /// </remarks>
+    private bool _mainWindowClosing;
+
     /// <summary>装配整个应用界面。</summary>
     /// <param name="config">配置服务。</param>
     /// <param name="logger">日志。</param>
@@ -187,7 +199,12 @@ public sealed class AppShell : IDisposable
         _overlay.HideOverlay();
         _overlay.Close();
         _tray.Dispose();
-        _mainWindow.Close();
+
+        // 用户点 X 走进来时窗口已经在关闭中，重复 Close() 会抛异常；这种情形下交给它自己关完
+        if (!_mainWindowClosing)
+        {
+            _mainWindow.Close();
+        }
 
         Application.Current?.Shutdown();
     }
@@ -536,6 +553,9 @@ public sealed class AppShell : IDisposable
 
     private void OnMainWindowClosing(object? sender, CancelEventArgs e)
     {
+        // 先记下"窗口已在关闭中"，Exit() 据此跳过重复 Close()
+        _mainWindowClosing = true;
+
         if (_exiting)
         {
             return;
@@ -547,6 +567,8 @@ public sealed class AppShell : IDisposable
             return;
         }
 
+        // 关闭被取消：窗口仍然存在，标志位要还原
+        _mainWindowClosing = false;
         e.Cancel = true;
         _mainWindow.Hide();
         _tray.ShowBalloon("Input Tool 仍在运行", "程序已最小化到托盘：双击托盘图标可重新打开，右键菜单可退出。");

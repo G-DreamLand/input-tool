@@ -92,10 +92,13 @@ public sealed record CountdownConfig(
     OverlayPosition OverlayPosition = OverlayPosition.BottomRight);
 
 /// <summary>热键配置（文本形式，便于用户手工编辑）。</summary>
+/// <remarks>
+/// 主构造参数的默认值只能是字面量（取不到下面几个常量——不在同一作用域），
+/// 因此 <c>EmergencyStop</c> 的默认值与 <see cref="DefaultEmergencyStop"/> 是一处必须同步的重复，
+/// 已有用例 <c>默认急停热键_应与常量一致</c> 守住。
+/// </remarks>
 public sealed record HotkeysConfig(
     string StartPause = "F9",
-    // 注：主构造参数默认值取不到下面那个常量（不在同一作用域），只能写死字面量；
-    // 二者必须一致，已有用例 `默认急停热键_应与常量一致` 守住。
     string EmergencyStop = "F10",
     string SpeedUp = "Ctrl+Alt+Up",
     string SpeedDown = "Ctrl+Alt+Down")
