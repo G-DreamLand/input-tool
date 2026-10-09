@@ -435,14 +435,28 @@ public sealed class MainViewModel : ViewModelBase
     public string StartPauseHotkey
     {
         get => _startPauseHotkey;
-        set => SetProperty(ref _startPauseHotkey, value);
+        set
+        {
+            if (SetProperty(ref _startPauseHotkey, value))
+            {
+                OnPropertyChanged(nameof(StartButtonText));
+                OnPropertyChanged(nameof(StepModeLabel));
+                OnPropertyChanged(nameof(StepModeTooltip));
+            }
+        }
     }
 
     /// <summary>紧急停止热键显示文本（FR-014）。</summary>
     public string EmergencyStopHotkey
     {
         get => _emergencyStopHotkey;
-        set => SetProperty(ref _emergencyStopHotkey, value);
+        set
+        {
+            if (SetProperty(ref _emergencyStopHotkey, value))
+            {
+                OnPropertyChanged(nameof(StopButtonText));
+            }
+        }
     }
 
     /// <summary>速度加快热键显示文本（FR-028）。</summary>
@@ -492,12 +506,31 @@ public sealed class MainViewModel : ViewModelBase
     };
 
     /// <summary>【开始】按钮文案（Finished/Error 提示重新开始，T18/T19）。</summary>
+    /// <remarks>
+    /// 热键取**实际生效**的组合（<see cref="StartPauseHotkey"/>，可能因冲突回退或用户改过），
+    /// 不写死字面量——写死就会出现"按钮说 F9、实际是别的键"这种界面骗人的情况。
+    /// </remarks>
     public string StartButtonText => State is InputSessionState.Finished or InputSessionState.Error
-        ? "▶ 重新开始 (F9)"
-        : "▶ 开始 (F9)";
+        ? $"▶ 重新开始 ({StartPauseHotkey})"
+        : $"▶ 开始 ({StartPauseHotkey})";
 
     /// <summary>【暂停/继续】按钮文案（FR-015）。</summary>
     public string PauseButtonText => State == InputSessionState.Paused ? "▶ 继续" : "⏸ 暂停";
+
+    /// <summary>【逐行步进】复选框文案。</summary>
+    /// <remarks>步进继续复用的就是「开始/暂停」键，因此文案跟着 <see cref="StartPauseHotkey"/> 走，不写死 F9。</remarks>
+    public string StepModeLabel => $"逐行步进（按 {StartPauseHotkey} 继续下一行）";
+
+    /// <summary>【逐行步进】复选框提示。</summary>
+    public string StepModeTooltip
+        => $"启用后每行打完就停住，按 {StartPauseHotkey} 才输入下一行；空行也算一步（脚本语义）";
+
+    /// <summary>【停止】按钮文案（FR-014）。</summary>
+    /// <remarks>
+    /// 与 <see cref="StartButtonText"/> 同理：显示实际生效的急停热键。
+    /// 真机报障就是栽在这一处——按钮写死 F10，实际注册的是配置里的 Ctrl+Alt+F11。
+    /// </remarks>
+    public string StopButtonText => $"■ 停止 ({EmergencyStopHotkey})";
 
     /// <summary>是否处于"文件与设置不可编辑"的会话中。</summary>
     public bool IsBusy => State is InputSessionState.Typing or InputSessionState.Paused or InputSessionState.Countdown;

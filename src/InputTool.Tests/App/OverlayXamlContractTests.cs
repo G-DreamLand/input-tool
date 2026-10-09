@@ -79,40 +79,11 @@ public sealed class OverlayXamlContractTests
         panel.Should().Contain("VerticalScrollBarVisibility=\"Auto\"");
     }
 
-    // ── 源码定位 ────────────────────────────────────────────────────────
+    // ── 源码定位（公共读取见 AppSourceFiles）────────────────────────────
 
-    private static string RepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    private static string OverlayXaml() => AppSourceFiles.View("OverlayWindow.xaml");
 
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "src", "InputTool.sln")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"从 {AppContext.BaseDirectory} 向上找不到仓库根目录（应包含 src 下的 InputTool.sln）");
-    }
-
-    private static string ReadSource(params string[] relativeParts)
-    {
-        var path = Path.Combine(new[] { RepoRoot() }.Concat(relativeParts).ToArray());
-
-        File.Exists(path).Should().BeTrue($"硬约束守卫需要读到源码：{path}");
-
-        return File.ReadAllText(path);
-    }
-
-    private static string OverlayXaml()
-        => ReadSource("src", "InputTool.App", "Views", "OverlayWindow.xaml");
-
-    private static string OverlayCode()
-        => ReadSource("src", "InputTool.App", "Views", "OverlayWindow.xaml.cs");
+    private static string OverlayCode() => AppSourceFiles.View("OverlayWindow.xaml.cs");
 
     /// <summary>取出「下一行」面板那一段 XAML（面板内没有嵌套 StackPanel，取第一个闭合标签即可）。</summary>
     private static string StepLinePanelXaml()

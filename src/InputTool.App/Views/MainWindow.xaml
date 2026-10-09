@@ -253,9 +253,9 @@
                             <CheckBox Content="跳过以 # 开头的行" Margin="18,0,0,0" VerticalAlignment="Center"
                                       IsChecked="{Binding SkipCommentLines, Mode=TwoWay}"
                                       IsEnabled="{Binding IsDocumentEditable}" />
-                            <CheckBox Content="逐行步进（按 F9 继续下一行）" Margin="18,0,0,0" VerticalAlignment="Center"
+                            <CheckBox Content="{Binding StepModeLabel}" Margin="18,0,0,0" VerticalAlignment="Center"
                               IsChecked="{Binding StepMode, Mode=TwoWay}"
-                              ToolTip="启用后每行打完就停住，按 F9 才输入下一行；空行也算一步（脚本语义）" />
+                              ToolTip="{Binding StepModeTooltip}" />
                     <CheckBox Content="目标窗口焦点守护" Margin="18,0,0,0" VerticalAlignment="Center"
                                       IsChecked="{Binding FocusGuard, Mode=TwoWay}"
                                       IsEnabled="{Binding IsDocumentEditable}"
@@ -335,7 +335,7 @@
                     <Button Grid.Column="1" Content="{Binding PauseButtonText}" Width="100" Margin="10,0,0,0"
                             Height="{StaticResource ControlHeightLarge}"
                             Command="{Binding PauseResumeCommand}" />
-                    <Button Grid.Column="2" Content="■ 停止 (F10)" Width="120" Margin="10,0,0,0"
+                    <Button Grid.Column="2" Content="{Binding StopButtonText}" Width="120" Margin="10,0,0,0"
                             Height="{StaticResource ControlHeightLarge}"
                             Style="{StaticResource DangerButtonStyle}"
                             Command="{Binding StopCommand}"

@@ -230,6 +230,10 @@ public sealed class AppShell : IDisposable
         _main.SpeedUpHotkey = DisplayGesture(HotkeyRole.SpeedUp, "Ctrl+Alt+Up");
         _main.SpeedDownHotkey = DisplayGesture(HotkeyRole.SpeedDown, "Ctrl+Alt+Down");
 
+        // 浮层里的热键提示同样要跟着实际生效的组合走，不能在 XAML 里写死
+        _overlay.EmergencyStopHotkeyText = _main.EmergencyStopHotkey;
+        _overlay.StartPauseHotkeyText = _main.StartPauseHotkey;
+
         // 急停热键注册失败 → 阻断式警告：在成功注册前不允许开始输入（FR-014.5）
         if (!_hotkeys.EmergencyStopAvailable)
         {

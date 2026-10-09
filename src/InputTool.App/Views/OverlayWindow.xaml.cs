@@ -63,6 +63,18 @@ public partial class OverlayWindow : Window
     /// <summary>是否正在倒计时。</summary>
     public bool IsCountingDown => _isCountingDown;
 
+    /// <summary>
+    /// 急停热键的显示文本。由 AppShell 按**实际生效**的组合注入。
+    /// </summary>
+    /// <remarks>
+    /// 不能在 XAML 里写死：真机报障就是"按钮/提示写 F10、实际注册的是配置里的 Ctrl+Alt+F11"，
+    /// 用户在唯一需要急停的时刻被告知了错误的键。
+    /// </remarks>
+    public string EmergencyStopHotkeyText { get; set; } = "F10";
+
+    /// <summary>开始/暂停热键显示文本（逐行步进复用该键继续）。</summary>
+    public string StartPauseHotkeyText { get; set; } = "F9";
+
     /// <summary>剩余整秒数（向上取整，用于显示）。</summary>
     public int RemainingSeconds { get; private set; }
 
@@ -80,6 +92,7 @@ public partial class OverlayWindow : Window
         RemainingSeconds = _totalSeconds;
         CountdownNumber.Text = _totalSeconds.ToString();
         CountdownCaption.Text = "秒后开始输入…";
+        CountdownHint.Text = $"按 Esc 取消（或 {EmergencyStopHotkeyText} 紧急停止）";
 
         _isCountingDown = true;
         _stopwatch.Restart();
@@ -123,6 +136,7 @@ public partial class OverlayWindow : Window
 
         StepLineCaption.Text = $"下一行（第 {lineNumber} 行）";
         StepLineText.Text = displayText;
+        StepLineHint.Text = $"按 {StartPauseHotkeyText} 继续下一行（{EmergencyStopHotkeyText} 急停）";
 
         ShowAt(position);
     }
